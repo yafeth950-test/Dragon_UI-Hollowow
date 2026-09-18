@@ -185,11 +185,16 @@ L["TotemBarOverlay"] = "图腾条"
 L["PlayerCastbar"] = "施法条"
 L["TargetCastbar"] = "目标施法条"
 L["FocusCastbar"] = "焦点施法条"
+L["AttackbarPlayer"] = "挥击计时器 (主手)"
+L["AttackbarOffhand"] = "挥击计时器 (副手)"
+L["AttackbarEnemy"] = "敌方挥击计时器"
 L["TooltipWidget"] = "鼠标提示"
 L["Buff"] = "增益"
 L["Debuffs"] = "减益"
+L["Auras"] = "光环"
 L["WeaponEnchants"] = "武器附魔"
 L["Loot Roll"] = "拾取掷骰"
+L["LevelUpFrame"] = "升级"
 L["Quest Tracker"] = "任务追踪"
 
 L["Drag to move"] = "拖动以移动"
@@ -203,6 +208,14 @@ L["Left"] = "左"
 L["Right"] = "右"
 L["Error Messages"] = "错误消息"
 L["ErrorMessages"] = "错误消息"
+L["ExtraActionButton"] = "额外动作按钮"
+L["PlayerPrimaryStat"] = "主属性"
+L["TargetPrimaryStat"] = "目标主属性"
+L["Primary stat icon movability widget"] = "主属性图标可移动组件"
+L["WildCardDice"] = "WildCard 骰子"
+L["Ascension WildCard dice movability widget"] = "Ascension WildCard 骰子可移动组件"
+L["DurabilityFrameWidget"] = "耐久度框架"
+L["Durability frame movability widget"] = "耐久度框架可移动组件"
 
 L["All editable frames shown for editing"] = "已显示所有可编辑框体以供编辑"
 L["All editable frames hidden, positions saved"] = "所有可编辑框体已隐藏，位置已保存"
@@ -234,6 +247,15 @@ L["Use DragonUI"] = "使用 DragonUI"
 L["Disable Both"] = "全部禁用"
 L["Use DragonUI Unit Frame Layers"] = "使用 DragonUI 单位框架层"
 L["Disable both Unit Frame Layers"] = "同时禁用两个单位框架层"
+
+-- Nameplate conflict detection
+L["DragonUI - Nameplate Conflict"] = "DragonUI - 姓名板冲突"
+L["The addon |cFFFFFF00%s|r provides nameplate functionality which conflicts with DragonUI Nameplates."] = "插件 |cFFFFFF00%s|r 提供了与 DragonUI 姓名板冲突的姓名板功能。"
+L["Select which nameplate system to keep:"] = "选择要保留的姓名板系统："
+L["DragonUI Nameplates"] = "DragonUI 姓名板"
+L["Keep DragonUI Nameplates and disable %s"] = "保留 DragonUI 姓名板并禁用 %s"
+L["Keep %s and disable DragonUI Nameplates"] = "保留 %s 并禁用 DragonUI 姓名板"
+L["Don't ask again"] = "不再询问"
 
 L["Conflicts with DragonUI's custom unit frame textures and power bar system."] = "与 DragonUI 的自定义单位框架纹理和能量条系统冲突。"
 L["Resets minimap mask and blip textures. DragonUI re-applies its custom textures automatically."] = "会重置小地图遮罩和图标纹理。DragonUI 会自动重新应用自定义纹理。"
@@ -306,9 +328,19 @@ L["Slot locked (bag %d, slot %d)."] = "格子已锁定（背包 %d，槽位 %d�
 L["Slot unlocked (bag %d, slot %d)."] = "格子已解锁（背包 %d，槽位 %d）。"
 L["Could not clear locks (config not ready)."] = "无法清除锁定（配置尚未就绪）。"
 L["Cleared all sort-locked slots."] = "已清除所有整理锁定格子。"
+L["Cannot sort bags while in combat."] = "战斗中无法整理背包！"
 
 -- Sell Scrap
 L["Sell Scrap"] = "出售垃圾"
+L["Click to sell all gray (poor) items to vendor."] = "点击将所有灰色（粗糙）物品出售给商人。"
+L["A merchant window must be open."] = "必须先打开商人窗口。"
+L["Open a merchant window first to sell scrap items."] = "请先打开商人窗口再出售垃圾物品。"
+L["Sold %d scrap item(s) for %s."] = "出售了%d件垃圾物品，获得%s。"
+L["No scrap items to sell."] = "没有可出售的垃圾物品。"
+
+-- Transmog Collect
+L["Collect Transmog"] = "收集幻化外观"
+L["Click to collect all uncollected transmog appearances from your bags."] = "点击以收集背包中所有未收集的幻化外观。"
 L["Open a merchant window first to sell scrap items."] = "请先打开商人窗口再出售垃圾物品。"
 
 -- Guild Bank Sort
@@ -442,6 +474,8 @@ L["Target & Focus Aura Customization"] = "目标和焦点光环自定义"
 L["Customize target/focus aura icons and timers."] = "自定义目标和焦点光环的图标与计时文字。"
 L["Dark Mode"] = "暗色模式"
 L["Darken UI borders and chrome"] = "加深界面边框与装饰"
+L["Compact Frames"] = "紧凑框架"
+L["Flat retail-style health bars on compact party/raid frames"] = "在紧凑的小队与团队框架上使用类似正式服的血量条"
 L["Item Quality"] = "物品品质"
 L["Color item borders by quality in bags, character panel, bank, and merchant"] = "在背包、角色面板、银行和商人界面中按品质为物品边框着色"
 -- Item Level
@@ -513,10 +547,45 @@ L["Double-Click to Copy"] = "双击复制"
 L["Copy Text"] = "复制文本"
 L["URL"] = "URL"
 
+-- Level Up Enhance Module
+L["Level Up Enhance"] = "Level Up Enhance"
+L["Enhanced level-up notification with animated frame"] = "Enhanced level-up notification with animated frame"
+L["You've Reached"] = "You've Reached"
+L["Level %d"] = "Level %d"
+
 -- Version Check Module
 L["Version Check"] = "版本检查"
 L["Broadcast and detect addon version updates across group members"] = "检测队伍成员间插件版本更新，通过广播和接收版本信息"
 
+-- Performance Warmup Module
+L["UI Warmup"] = "界面预热"
+L["Pre-loads select Blizzard panels on login to avoid first-use freezes during gameplay."] = "登录时预加载选定的暴雪面板，以避免游戏中首次使用时的卡顿。"
+
+-- BNet Toast Module
+L["BNet Toast"] = "BNet 提醒"
+L["Friend online/offline notifications with Battle.net toasts and chat messages"] = "好友上线/下线的战网提醒和聊天通知"
+L["Position & Scale"] = "位置与缩放"
+L["Scale of the BNet toast frame."] = "战网提示框的缩放比例。"
+L["Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."] = "战网提示距屏幕中心的水平位置。负值向左移动，正值向右移动。"
+L["Vertical offset of the BNet toast frame. Negative values move down, positive values move up."] = "战网提示框的垂直偏移。负值向下移动，正值向上移动。"
+
+
+-- ============================================================================
+-- Added missing translations
+-- ============================================================================
+L["Minimap Decorations"] = "小地图装饰"
+L["Native animated minimap decoration effects for DragonUI."] = "DragonUI 的原生动画小地图装饰效果。"
+L["Nameplate functionality conflicts with DragonUI's nameplate module."] = "姓名板功能与 DragonUI 的姓名板模块冲突。"
+L["Aura Borders"] = "光环边框"
+L["Modern borders on buff and debuff icons."] = "为增益和减益图标添加现代风格边框。"
+L["%s any bag slot (item or empty) to lock or unlock it."] = "%s任意背包格子（有物品或空格）以锁定或解锁。"
+L["Alt"] = "Alt"
+L["Ctrl"] = "Ctrl"
+L["Shift"] = "Shift"
+L["Left Click"] = "左键单击"
+L["Right Click"] = "右键单击"
+L["Middle Click"] = "中键单击"
+L["Retail-style textures for bags (Combuctor + default)"] = "背包的正式服风格纹理（Combuctor + 默认）"
 -- Quest nameplate icons wizard (Questie coexistence)
 L["Quest Icons on Nameplates"] = "姓名板任务图标"
 L["Which quest icons do you want on your nameplates?"] = "你想在姓名板上显示哪种任务图标？"
@@ -651,6 +720,23 @@ L["Weighted score of your equipped gear."] = "你已装备物品的加权评分�
 L["Reset stat order"] = "重置排序"
 L["Restore the stat categories to their default order?"] = "将属性分类恢复为默认顺序？"
 
+-- ============================================================================
+-- DAMAGE METER SKIN (DETAILS!)
+-- ============================================================================
+
+L["Damage Meter Skin"] = "伤害统计皮肤"
+L["A retail-styled theme for the Details! Damage Meter: gold-titled header bar, class-coloured bars and abbreviated numbers."] = "为Details!伤害统计打造的正式服风格主题：金色标题栏、职业配色条形和缩写数字。"
+L["Details! skin applied."] = "Details!皮肤已应用。"
+L["Could not apply the skin - Details! is not ready yet."] = "无法应用皮肤 - Details!尚未就绪。"
+L["Details! is not installed."] = "未安装Details!。"
+
+-- MERCHANT MODULE
+L["Merchant"] = "商人"
+L["Retail-style vendor window chrome"] = "商人窗口现代风格"
+L["Sell all junk items"] = "出售所有垃圾物品"
+L["Sell all of your junk (gray) items?"] = "出售你所有的垃圾(灰色)物品？"
+L["Sold %d junk item(s)."] = "已售出 %d 件垃圾物品。"
+
 -- World Map
 L["World Map"] = "世界地图"
 L["Retail-style world map with breadcrumb navigation and a quest log side panel"] = "正式服风格的世界地图，带面包屑导航和任务日志侧边栏"
@@ -672,3 +758,11 @@ L["Show Flight Points"] = "显示飞行点"
 L["Flight Master"] = "飞行管理员"
 L["Click to view on Map"] = "点击在地图上查看"
 L["Search Quest Log"] = "搜索任务日志"
+
+-- Iconic
+L["Iconic"] = "Iconic"
+L["Item icons in chat, merchant improvements, and enhanced item tooltips."] = "聊天物品图标、商人界面改进及增强物品鼠标提示。"
+
+-- Item Loot (Loot Toast)
+L["Loot Toast"] = "拾取弹窗"
+L["Pretty loot toast alert notifications with custom textures."] = "具有自定义材质的漂亮拾取弹窗提示。"

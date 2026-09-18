@@ -11,7 +11,11 @@ local addon = select(2, ...)
 -- ============================================================================
 
 -- Module state tracking
-local VersionCheckModule = {}
+local VersionCheckModule = {
+    initialized = false,
+    applied = false,
+    registeredEvents = {},
+}
 
 -- Register with ModuleRegistry (if available)
 if addon.RegisterModule then
@@ -226,7 +230,7 @@ do
     initFrame:SetScript("OnEvent", function()
         initFrame:UnregisterAllEvents()
 
-        CURRENT_VERSION = GetAddOnMetadata("DragonUI", "Version") or "0.0"
+        CURRENT_VERSION = GetAddOnMetadata("DragonUI", "Version") or "3.2"
         highestVersionSeen = CURRENT_VERSION
 
         if IsModuleEnabled() then

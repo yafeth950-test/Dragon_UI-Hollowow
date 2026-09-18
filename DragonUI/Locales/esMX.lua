@@ -174,6 +174,9 @@ L["TargetFrame"] = "Objetivo"
 L["FocusFrame"] = "Foco"
 L["TargetCastbar"] = "Barra de lanzamiento de Objetivo"
 L["FocusCastbar"] = "Barra de lanzamiento de Foco"
+L["AttackbarPlayer"] = "Temporizador de golpe (MH)"
+L["AttackbarOffhand"] = "Temporizador de golpe (OH)"
+L["AttackbarEnemy"] = "Temporizador de golpe enemigo"
 L["BagsBar"] = "Bolsas"
 L["MicroMenu"] = "Micromenú"
 L["VehicleExitOverlay"] = "Salir Vehículo"
@@ -191,8 +194,10 @@ L["PlayerCastbar"] = "Barra Hechizos"
 L["TooltipWidget"] = "Tooltip"
 L["Buff"] = "Beneficio"
 L["Debuffs"] = "Perjuicio"
+L["Auras"] = "Auras"
 L["WeaponEnchants"] = "Encantamientos"
 L["Loot Roll"] = "Botín"
+L["LevelUpFrame"] = "Subir de Nivel"
 L["Quest Tracker"] = "Misiones"
 
 -- Mover tooltip strings
@@ -207,6 +212,14 @@ L["Left"] = "Izquierda"
 L["Right"] = "Derecha"
 L["Error Messages"] = "Mensajes de error"
 L["ErrorMessages"] = "Mensajes de error"
+L["ExtraActionButton"] = "Botón de acción extra"
+L["PlayerPrimaryStat"] = "Estadística Principal"
+L["TargetPrimaryStat"] = "Estadística Principal (Objetivo)"
+L["Primary stat icon movability widget"] = "Widget de movilidad del icono de estadística principal"
+L["WildCardDice"] = "Dados WildCard"
+L["Ascension WildCard dice movability widget"] = "Widget de movilidad de los dados WildCard de Ascension"
+L["DurabilityFrameWidget"] = "Marco de Durabilidad"
+L["Durability frame movability widget"] = "Widget de movilidad del marco de durabilidad"
 
 -- Editor mode system messages
 L["All editable frames shown for editing"] = "Marcos editables mostrados"
@@ -241,10 +254,20 @@ L["Disable Both"] = "Desactivar ambos"
 L["Use DragonUI Unit Frame Layers"] = "Usar Unit Frame Layers de DragonUI"
 L["Disable both Unit Frame Layers"] = "Desactivar ambos Unit Frame Layers"
 
+-- Nameplate conflict detection
+L["DragonUI - Nameplate Conflict"] = "DragonUI - Conflicto de Nameplates"
+L["The addon |cFFFFFF00%s|r provides nameplate functionality which conflicts with DragonUI Nameplates."] = "El addon |cFFFFFF00%s|r tiene funcionalidad de nameplates que entra en conflicto con los Nameplates de DragonUI."
+L["Select which nameplate system to keep:"] = "Elegí qué sistema de nameplates querés mantener:"
+L["DragonUI Nameplates"] = "Nameplates de DragonUI"
+L["Keep DragonUI Nameplates and disable %s"] = "Conservar Nameplates de DragonUI y desactivar %s"
+L["Keep %s and disable DragonUI Nameplates"] = "Conservar %s y desactivar Nameplates de DragonUI"
+L["Don't ask again"] = "No preguntar de nuevo"
+
 -- Conflict reasons
 L["Conflicts with DragonUI's custom unit frame textures and power bar system."] = "Entra en conflicto con las texturas personalizadas de marcos de unidad y el sistema de barra de poder de DragonUI."
 L["Resets minimap mask and blip textures. DragonUI re-applies its custom textures automatically."] = "Restablece la máscara del minimapa y las texturas de puntos. DragonUI vuelve a aplicar sus texturas personalizadas automáticamente."
 L["SexyMap modifies the minimap borders, shape, and zone text which conflicts with DragonUI's minimap module."] = "SexyMap modifica los bordes del minimapa, la forma y el texto de zona, lo cual entra en conflicto con el módulo de minimapa de DragonUI."
+L["Nameplate functionality conflicts with DragonUI's nameplate module."] = "La funcionalidad de nameplates entra en conflicto con el módulo de nameplates de DragonUI."
 L["Reads native nameplate alpha to identify the target's plate; conflicts with DragonUI's default anti-dim behavior."] = "Usa la transparencia nativa de la placa para identificar la placa del objetivo; entra en conflicto con el comportamiento anti-atenuado por defecto de DragonUI."
 L["Parents its cooldown icons to the native health bar; conflicts with DragonUI's default health-bar hiding."] = "Cuelga sus iconos de cooldown en la barra de vida nativa; entra en conflicto con el ocultado por defecto de esa barra en DragonUI."
 
@@ -314,6 +337,7 @@ L["Slot locked (bag %d, slot %d)."] = "Slot bloqueado (bolsa %d, slot %d)."
 L["Slot unlocked (bag %d, slot %d)."] = "Slot desbloqueado (bolsa %d, slot %d)."
 L["Could not clear locks (config not ready)."] = "No se pudieron limpiar los bloqueos (configuración no lista)."
 L["Cleared all sort-locked slots."] = "Se limpiaron todos los slots bloqueados del ordenado."
+L["Cannot sort bags while in combat."] = "No se pueden ordenar las bolsas durante el combate."
 
 -- Sell Scrap
 L["Sell Scrap"] = "Vender Chatarra"
@@ -323,6 +347,9 @@ L["Open a merchant window first to sell scrap items."] = "Abre primero una venta
 L["Sold %d scrap item(s) for %s."] = "Vendido(s) %d objeto(s) de chatarra por %s."
 L["No scrap items to sell."] = "No hay objetos de chatarra para vender."
 
+-- Transmog Collect
+L["Collect Transmog"] = "Coleccionar Transmog"
+L["Click to collect all uncollected transmog appearances from your bags."] = "Haz clic para coleccionar todas las apariencias de transmog no coleccionadas de tus bolsas."
 -- Guild Bank Sort
 L["You must be at the guild bank."] = "Debes estar en el banco de hermandad."
 L["Could not determine the current guild bank tab."] = "No se pudo determinar la pestaña actual del banco de hermandad."
@@ -432,6 +459,8 @@ L["Buttons"] = "Botones"
 L["Action button styling and enhancements"] = "Estilo y mejoras de botones de acción"
 L["Dark Mode"] = "Modo Oscuro"
 L["Darken UI borders and chrome"] = "Oscurecer bordes y elementos de la interfaz"
+L["Compact Frames"] = "Marcos Compactos"
+L["Flat retail-style health bars on compact party/raid frames"] = "Barras de vida planas estilo retail en los marcos compactos de grupo y banda"
 L["Item Quality"] = "Calidad de Objeto"
 L["Color item borders by quality in bags, character panel, bank, and merchant"] = "Colorear los bordes de objetos por calidad en bolsas, personaje, banco y mercader"
 -- Item Level
@@ -500,6 +529,52 @@ L["Copy Text"] = "Copiar texto"
 L["Version Check"] = "Control de Versión"
 L["Broadcast and detect addon version updates across group members"] = "Detecta actualizaciones del addon entre miembros del grupo enviando y recibiendo la versión"
 
+-- Performance Warmup Module
+L["UI Warmup"] = "Precalentamiento de la UI"
+L["Pre-loads select Blizzard panels on login to avoid first-use freezes during gameplay."] = "Precarga paneles seleccionados de Blizzard al iniciar sesión para evitar congelamientos en el primer uso durante el juego."
+
+-- Level Up Enhance Module
+L["Level Up Enhance"] = "Mejora de Subida de Nivel"
+L["Enhanced level-up notification with animated frame"] = "Notificación mejorada de subida de nivel con marco animado"
+L["You've Reached"] = "Has Alcanzado"
+L["Level %d"] = "Nivel %d"
+
+-- BNet Toast Module
+L["BNet Toast"] = "Aviso BNet"
+L["Friend online/offline notifications with Battle.net toasts and chat messages"] = "Notificaciones de amigos en línea/desconectados con toasts y mensajes de Battle.net"
+L["Position & Scale"] = "Posición y Escala"
+L["Scale of the BNet toast frame."] = "Escala del marco de notificación de Battle.net."
+L["Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."] = "Posición horizontal de la notificación de Battle.net desde el centro de la pantalla. Valores negativos mueven a la izquierda, positivos a la derecha."
+L["Vertical offset of the BNet toast frame. Negative values move down, positive values move up."] = "Desplazamiento vertical del marco de notificación de Battle.net. Valores negativos mueven hacia abajo, positivos hacia arriba."
+
+-- ============================================================================
+-- Added missing translations
+-- ============================================================================
+L["Minimap Decorations"] = "Decoraciones del minimapa"
+L["Native animated minimap decoration effects for DragonUI."] = "Efectos de decoración animados nativos del minimapa para DragonUI."
+L["URL"] = "URL"
+L["Equipment"] = "Equipo"
+L["Usable"] = "Utilizable"
+L["Normal"] = "Normal"
+L["Trade"] = "Comercio"
+L["Target & Focus Aura Customization"] = "Personalización de auras de objetivo y foco"
+L["Customize target/focus aura icons and timers."] = "Personaliza los iconos y temporizadores de auras de objetivo/foco."
+L["Aura Borders"] = "Bordes de auras"
+L["Modern borders on buff and debuff icons."] = "Bordes modernos en los iconos de beneficios y perjuicios."
+L["%s's Inventory"] = "Inventario de %s"
+L["%s's Bank"] = "Banco de %s"
+L["Inventory"] = "Inventario"
+L["Bank"] = "Banco"
+L["Bags"] = "Bolsas"
+L["Retail-style textures for bags (Combuctor + default)"] = "Texturas estilo Retail para las bolsas (Combuctor + predeterminado)"
+L["|cff00ff00Left-Click|r to toggle bag display"] = "|cff00ff00Clic izquierdo|r para alternar la vista de bolsas"
+L["|cff00ff00Right-Click|r to toggle inventory"] = "|cff00ff00Clic derecho|r para alternar el inventario"
+L["|cff00ff00Right-Click|r to toggle bank"] = "|cff00ff00Clic derecho|r para alternar el banco"
+L["|cff00ff00Drag|r to move"] = "|cff00ff00Arrastra|r para mover"
+L["|cff00ff00Alt+Right-Click|r to reset position"] = "|cff00ff00Alt+Clic derecho|r para restablecer la posición"
+L["Toggle Inventory"] = "Alternar inventario"
+L["Toggle Bank"] = "Alternar banco"
+L["Double-Click to Copy"] = "Doble clic para copiar"
 -- Quest nameplate icons wizard (Questie coexistence)
 L["Quest Icons on Nameplates"] = "Iconos de misión en las placas"
 L["Which quest icons do you want on your nameplates?"] = "¿Qué iconos de misión quieres en tus placas?"
@@ -658,6 +733,25 @@ L["Weighted score of your equipped gear."] = "Puntuación ponderada de tu equipo
 L["Reset stat order"] = "Restablecer el orden"
 L["Restore the stat categories to their default order?"] = "¿Restablecer las categorías de estadísticas a su orden predeterminado?"
 
+-- ============================================================================
+-- DAMAGE METER SKIN (DETAILS!)
+-- ============================================================================
+
+L["Damage Meter Skin"] = "Skin del medidor de daño"
+L["A retail-styled theme for the Details! Damage Meter: gold-titled header bar, class-coloured bars and abbreviated numbers."] = "Tema con estilo retail para el medidor de daño Details!: barra de título dorada, barras con colores de clase y números abreviados."
+L["Details! skin applied."] = "Skin de Details! aplicada."
+L["Could not apply the skin - Details! is not ready yet."] = "No se pudo aplicar la skin - Details! aún no está listo."
+L["Details! is not installed."] = "Details! no está instalado."
+
+L["Details! is not installed."] = "Details! no está instalado."
+
+-- MERCHANT MODULE
+L["Merchant"] = "Mercader"
+L["Retail-style vendor window chrome"] = "Marco estilo Retail para la ventana de vendedor"
+L["Sell all junk items"] = "Vender todos los objetos basura"
+L["Sell all of your junk (gray) items?"] = "¿Vender todos tus objetos basura (grises)?"
+L["Sold %d junk item(s)."] = "Vendido %d objeto(s) basura."
+
 -- World Map
 L["World Map"] = "Mapa del mundo"
 L["Retail-style world map with breadcrumb navigation and a quest log side panel"] = "Mapa del mundo al estilo de Retail con navegación por migas de pan y un panel lateral de misiones"
@@ -679,3 +773,11 @@ L["Show Flight Points"] = "Mostrar puntos de vuelo"
 L["Flight Master"] = "Maestro de vuelo"
 L["Click to view on Map"] = "Clic para ver en el mapa"
 L["Search Quest Log"] = "Buscar en el registro de misiones"
+
+-- Iconic
+L["Iconic"] = "Iconic"
+L["Item icons in chat, merchant improvements, and enhanced item tooltips."] = "Iconos de objetos en el chat, mejoras de comerciante y tooltips de objetos mejorados."
+
+-- Item Loot (Loot Toast)
+L["Loot Toast"] = "Alertas de botín"
+L["Pretty loot toast alert notifications with custom textures."] = "Notificaciones emergentes de botín con texturas personalizadas."

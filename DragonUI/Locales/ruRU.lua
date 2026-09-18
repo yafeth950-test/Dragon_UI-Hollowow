@@ -174,6 +174,9 @@ L["TargetFrame"] = "Цель"
 L["FocusFrame"] = "Фокус"
 L["TargetCastbar"] = "Полоса заклинаний цели"
 L["FocusCastbar"] = "Полоса заклинаний фокуса"
+L["AttackbarPlayer"] = "Таймер удара (ОР)"
+L["AttackbarOffhand"] = "Таймер удара (ДР)"
+L["AttackbarEnemy"] = "Таймер удара врага"
 L["BagsBar"] = "Сумки"
 L["MicroMenu"] = "Микроменю"
 L["VehicleExitOverlay"] = "Выход из транспорта"
@@ -191,8 +194,10 @@ L["PlayerCastbar"] = "Полоса заклинаний"
 L["TooltipWidget"] = "Подсказка"
 L["Buff"] = "Баф"
 L["Debuffs"] = "Дебаф"
+L["Auras"] = "Ауры"
 L["WeaponEnchants"] = "Зачарования оружия"
 L["Loot Roll"] = "Розыгрыш добычи"
+L["LevelUpFrame"] = "Уровень"
 L["Quest Tracker"] = "Трекер заданий"
 
 -- Mover tooltip strings
@@ -207,6 +212,14 @@ L["Left"] = "Слева"
 L["Right"] = "Справа"
 L["Error Messages"] = "Сообщения об ошибках"
 L["ErrorMessages"] = "Сообщения об ошибках"
+L["ExtraActionButton"] = "Дополнительная кнопка действия"
+L["PlayerPrimaryStat"] = "Основной показатель"
+L["TargetPrimaryStat"] = "Основной показатель цели"
+L["Primary stat icon movability widget"] = "Виджет перемещения иконки основного показателя"
+L["WildCardDice"] = "Кости WildCard"
+L["Ascension WildCard dice movability widget"] = "Виджет перемещения костей WildCard (Ascension)"
+L["DurabilityFrameWidget"] = "Окно прочности"
+L["Durability frame movability widget"] = "Виджет перемещения окна прочности"
 
 -- Editor mode system messages
 L["All editable frames shown for editing"] = "Все редактируемые фреймы показаны для редактирования"
@@ -240,6 +253,15 @@ L["Use DragonUI"] = "Использовать DragonUI"
 L["Disable Both"] = "Отключить оба"
 L["Use DragonUI Unit Frame Layers"] = "Использовать слои фреймов DragonUI"
 L["Disable both Unit Frame Layers"] = "Отключить оба варианта слоёв фреймов"
+
+-- Nameplate conflict detection
+L["DragonUI - Nameplate Conflict"] = "DragonUI - Конфликт неймплейтов"
+L["The addon |cFFFFFF00%s|r provides nameplate functionality which conflicts with DragonUI Nameplates."] = "Аддон |cFFFFFF00%s|r предоставляет функционал неймплейтов, который конфликтует с неймплейтами DragonUI."
+L["Select which nameplate system to keep:"] = "Выберите, какую систему неймплейтов оставить:"
+L["DragonUI Nameplates"] = "Неймплейты DragonUI"
+L["Keep DragonUI Nameplates and disable %s"] = "Оставить неймплейты DragonUI и отключить %s"
+L["Keep %s and disable DragonUI Nameplates"] = "Оставить %s и отключить неймплейты DragonUI"
+L["Don't ask again"] = "Больше не спрашивать"
 
 -- Conflict reasons
 L["Conflicts with DragonUI's custom unit frame textures and power bar system."] = "Конфликтует с пользовательскими текстурами фреймов и системой полос ресурсов DragonUI."
@@ -314,9 +336,19 @@ L["Slot locked (bag %d, slot %d)."] = "Ячейка заблокирована (
 L["Slot unlocked (bag %d, slot %d)."] = "Ячейка разблокирована (сумка %d, ячейка %d)."
 L["Could not clear locks (config not ready)."] = "Не удалось очистить блокировки (конфигурация не готова)."
 L["Cleared all sort-locked slots."] = "Все заблокированные ячейки очищены."
+L["Cannot sort bags while in combat."] = "Невозможно сортировать сумки во время боя!"
 
 -- Sell Scrap
 L["Sell Scrap"] = "Продать хлам"
+L["Click to sell all gray (poor) items to vendor."] = "Нажмите, чтобы продать все серые (низкокачественные) предметы торговцу."
+L["A merchant window must be open."] = "Окно торговца должно быть открыто."
+L["Open a merchant window first to sell scrap items."] = "Сначала откройте окно торговца, чтобы продать хлам."
+L["Sold %d scrap item(s) for %s."] = "Продано %d предмет(ов) хлама за %s."
+L["No scrap items to sell."] = "Нет хлама для продажи."
+
+-- Transmog Collect
+L["Collect Transmog"] = "Собрать трансмутацию"
+L["Click to collect all uncollected transmog appearances from your bags."] = "Нажмите, чтобы собрать все несобранные облики трансмутации из ваших сумок."
 L["Open a merchant window first to sell scrap items."] = "Сначала откройте окно торговца, чтобы продать хлам."
 
 -- Guild Bank Sort
@@ -428,6 +460,8 @@ L["Buttons"] = "Кнопки"
 L["Action button styling and enhancements"] = "Стилизация и улучшения кнопок действий"
 L["Dark Mode"] = "Тёмный режим"
 L["Darken UI borders and chrome"] = "Затемнение рамок и элементов интерфейса"
+L["Compact Frames"] = "Компактные рамки"
+L["Flat retail-style health bars on compact party/raid frames"] = "Плоские полосы здоровья в стиле ретейла на компактных рамках группы и рейда"
 L["Item Quality"] = "Качество предметов"
 L["Color item borders by quality in bags, character panel, bank, and merchant"] = "Окрашивание рамок предметов по качеству в сумках, окне персонажа, банке и у торговца"
 -- Item Level
@@ -485,10 +519,69 @@ L["Reputation: "] = "Репутация: "
 
 L["Copy Text"] = "Копировать текст"
 
+-- Version Check Module
 
 L["Version Check"] = "Проверка версий"
 L["Broadcast and detect addon version updates across group members"] = "Обнаруживает обновления аддона среди участников группы, отправляя и получая версию"
 
+-- Performance Warmup Module
+L["UI Warmup"] = "Прогрев интерфейса"
+L["Pre-loads select Blizzard panels on login to avoid first-use freezes during gameplay."] = "Предварительно загружает выбранные панели Blizzard при входе, чтобы избежать зависаний при первом использовании во время игры."
+
+-- Level Up Enhance Module
+L["Level Up Enhance"] = "Level Up Enhance"
+L["Enhanced level-up notification with animated frame"] = "Enhanced level-up notification with animated frame"
+L["You've Reached"] = "You've Reached"
+L["Level %d"] = "Level %d"
+
+-- BNet Toast Module
+L["BNet Toast"] = "BNet Уведомления"
+L["Friend online/offline notifications with Battle.net toasts and chat messages"] = "Уведомления о входе/выходе друзей через Battle.net тосты и чат"
+L["Position & Scale"] = "Позиция и масштаб"
+L["Scale of the BNet toast frame."] = "Масштаб рамки уведомления Battle.net."
+L["Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."] = "Горизонтальная позиция уведомления Battle.net от центра экрана. Отрицательные значения сдвигают влево, положительные — вправо."
+L["Vertical offset of the BNet toast frame. Negative values move down, positive values move up."] = "Вертикальное смещение рамки уведомления Battle.net. Отрицательные значения сдвигают вниз, положительные — вверх."
+
+
+L["Version Check"] = "Проверка версий"
+L["Broadcast and detect addon version updates across group members"] = "Обнаруживает обновления аддона среди участников группы, отправляя и получая версию"
+
+-- ============================================================================
+-- Added missing translations
+-- ============================================================================
+L["Minimap Decorations"] = "Украшения миникарты"
+L["Native animated minimap decoration effects for DragonUI."] = "Родные анимированные эффекты украшения миникарты для DragonUI."
+L["Nameplate functionality conflicts with DragonUI's nameplate module."] = "Функция индикаторов имён конфликтует с модулем индикаторов имён DragonUI."
+L["URL"] = "URL"
+L["Equipment"] = "Снаряжение"
+L["Usable"] = "Используемое"
+L["Normal"] = "Обычное"
+L["Trade"] = "Торговля"
+L["Target & Focus Aura Customization"] = "Настройка аур цели и фокуса"
+L["Customize target/focus aura icons and timers."] = "Настройте значки и таймеры аур цели/фокуса."
+L["Aura Borders"] = "Рамки аур"
+L["Modern borders on buff and debuff icons."] = "Современные рамки на значках усиливающих и ослабляющих эффектов."
+L["%s any bag slot (item or empty) to lock or unlock it."] = "%s по любой ячейке сумки (с предметом или пустой), чтобы заблокировать или разблокировать её."
+L["Alt"] = "Alt"
+L["Ctrl"] = "Ctrl"
+L["Shift"] = "Shift"
+L["Left Click"] = "Левый клик"
+L["Right Click"] = "Правый клик"
+L["Middle Click"] = "Средний клик"
+L["%s's Inventory"] = "Инвентарь %s"
+L["%s's Bank"] = "Банк %s"
+L["Inventory"] = "Инвентарь"
+L["Bank"] = "Банк"
+L["Bags"] = "Сумки"
+L["Retail-style textures for bags (Combuctor + default)"] = "Текстуры в стиле Retail для сумок (Combuctor + стандарт)"
+L["|cff00ff00Left-Click|r to toggle bag display"] = "|cff00ff00Левый клик|r для переключения отображения сумок"
+L["|cff00ff00Right-Click|r to toggle inventory"] = "|cff00ff00Правый клик|r для переключения инвентаря"
+L["|cff00ff00Right-Click|r to toggle bank"] = "|cff00ff00Правый клик|r для переключения банка"
+L["|cff00ff00Drag|r to move"] = "|cff00ff00Перетащите|r для перемещения"
+L["|cff00ff00Alt+Right-Click|r to reset position"] = "|cff00ff00Alt+Правый клик|r для сброса позиции"
+L["Toggle Inventory"] = "Переключить инвентарь"
+L["Toggle Bank"] = "Переключить банк"
+L["Double-Click to Copy"] = "Двойной клик для копирования"
 -- Quest nameplate icons wizard (Questie coexistence)
 L["Quest Icons on Nameplates"] = "Значки заданий на табличках"
 L["Which quest icons do you want on your nameplates?"] = "Какие значки заданий показывать на табличках?"
@@ -658,6 +751,23 @@ L["Weighted score of your equipped gear."] = "Взвешенная оценка 
 L["Reset stat order"] = "Сбросить порядок"
 L["Restore the stat categories to their default order?"] = "Вернуть категориям характеристик порядок по умолчанию?"
 
+-- ============================================================================
+-- DAMAGE METER SKIN (DETAILS!)
+-- ============================================================================
+
+L["Damage Meter Skin"] = "Скин измерителя урона"
+L["A retail-styled theme for the Details! Damage Meter: gold-titled header bar, class-coloured bars and abbreviated numbers."] = "Тема в стиле актуальной версии для измерителя урона Details!: золотая полоса заголовка, полосы с цветами классов и сокращённые числа."
+L["Details! skin applied."] = "Скин Details! применён."
+L["Could not apply the skin - Details! is not ready yet."] = "Не удалось применить скин - Details! ещё не готов."
+L["Details! is not installed."] = "Details! не установлен."
+
+-- MERCHANT MODULE
+L["Merchant"] = "Торговец"
+L["Retail-style vendor window chrome"] = "Современный интерфейс окна торговца"
+L["Sell all junk items"] = "Продать весь хлам"
+L["Sell all of your junk (gray) items?"] = "Продать весь твой хлам (серый)?"
+L["Sold %d junk item(s)."] = "Продано %d предмет(а/ов) хлама."
+
 -- World Map
 L["World Map"] = "Карта мира"
 L["Retail-style world map with breadcrumb navigation and a quest log side panel"] = "Карта мира в стиле Retail с навигационной цепочкой и боковой панелью журнала заданий"
@@ -679,3 +789,11 @@ L["Show Flight Points"] = "Показывать точки полета"
 L["Flight Master"] = "Распорядитель полетов"
 L["Click to view on Map"] = "Щелкните, чтобы показать на карте"
 L["Search Quest Log"] = "Поиск в журнале заданий"
+
+-- Iconic
+L["Iconic"] = "Iconic"
+L["Item icons in chat, merchant improvements, and enhanced item tooltips."] = "Иконки предметов в чате, улучшения торговца и расширенные подсказки предметов."
+
+-- Item Loot (Loot Toast)
+L["Loot Toast"] = "Оповещения о добыче"
+L["Pretty loot toast alert notifications with custom textures."] = "Красивые всплывающие оповещения о добыче с текстурами."

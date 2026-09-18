@@ -9,15 +9,19 @@ local VANILLA_X, VANILLA_Y = 65, -78
 -- Gnome or Troll backdrop art.
 local RACE_FALLBACK = { GNOME = "Dwarf", TROLL = "Orc" }
 
-local function raceKey()
-    local _, fileName = UnitRace("player")
+-- `unit` lets the Ascension skin build the same backdrop for the Inspect viewport, which shows the
+-- *target* rather than the player; the character model defaults to "player" like Blizzard's own.
+local function raceKey(unit)
+    unit = unit or "player"
+    local _, fileName = UnitRace(unit)
     if not fileName then return "ORC" end
     local upper = strupper(fileName)
     return strupper(RACE_FALLBACK[upper] or fileName)
 end
 
-local function racePath()
-    local _, fileName = UnitRace("player")
+local function racePath(unit)
+    unit = unit or "player"
+    local _, fileName = UnitRace(unit)
     if not fileName then return "Interface\\DressUpFrame\\DressUpBackground-Orc" end
     local upper = strupper(fileName)
     fileName = RACE_FALLBACK[upper] or fileName
@@ -44,36 +48,52 @@ local function resizeModel()
     model:SetPoint("TOPLEFT", cf.Inset, "TOPLEFT", 48, -6)
 end
 
+-- The backdrop grid is retail's 212x245 / 231x320 split; keeping the ratios lets the same art
+-- scale to any model viewport (Ascension's) while staying continuous across the seams.
+local X_SPLIT, Y_SPLIT = 212 / 231, 245 / 320
+
 -- Cropped to the viewport: 245 + 75 = 320, the model's exact height. Retail runs the bottom pair
 -- their full 128, which made the strip under the model depend on that overhang drawing.
 local BOTTOM_CROP = 75 / 128
 local QUARTERS = {
-    { key = "TopLeft", suffix = 1, w = 212, h = 245, tc = { 0.171875, 1, 0.0392156862745098, 1 },
+    { key = "TopLeft", suffix = 1, tc = { 0.171875, 1, 0.0392156862745098, 1 },
       point = "TOPLEFT", rel = "TOPLEFT" },
-    { key = "TopRight", suffix = 2, w = 19, h = 245, tc = { 0, 0.296875, 0.0392156862745098, 1 },
+    { key = "TopRight", suffix = 2, tc = { 0, 0.296875, 0.0392156862745098, 1 },
       point = "TOPLEFT", rel = "TOPRIGHT" },
-    { key = "BotLeft", suffix = 3, w = 212, h = 75, tc = { 0.171875, 1, 0, BOTTOM_CROP },
+    { key = "BotLeft", suffix = 3, tc = { 0.171875, 1, 0, BOTTOM_CROP },
       point = "TOPLEFT", rel = "BOTTOMLEFT" },
-    { key = "BotRight", suffix = 4, w = 19, h = 75, tc = { 0, 0.296875, 0, BOTTOM_CROP },
+    { key = "BotRight", suffix = 4, tc = { 0, 0.296875, 0, BOTTOM_CROP },
       point = "TOPLEFT", rel = "BOTTOMRIGHT" },
 }
 
 -- The race backdrops are strongly coloured and the model reads as a cutout pasted on them. Retail
 -- desaturates then dims under black, so the character is the only colour in the viewport.
-local function overlayAlpha()
-    return RACE_OVERLAY_ALPHA[raceKey()] or OVERLAY_ALPHA_DEFAULT
+local function overlayAlpha(unit)
+    return RACE_OVERLAY_ALPHA[raceKey(unit)] or OVERLAY_ALPHA_DEFAULT
 end
 
-local function buildBackground()
-    local model = _G.CharacterModelFrame
+local function buildRaceBackdrop(model)
     if not model or model._duiRaceBg then return end
     model._duiRaceBg = {}
+
+    local w, h = model:GetWidth() or 0, model:GetHeight() or 0
+    if w == 0 then w = MODEL_W end
+    if h == 0 then h = MODEL_H end
+    local qw, qh = math.floor(w * X_SPLIT + 0.5), math.floor(h * Y_SPLIT + 0.5)
 
     local topLeft
     for _, q in ipairs(QUARTERS) do
         local tex = model:CreateTexture(nil, "BACKGROUND")
-        tex:SetSize(q.w, q.h)
         tex:SetTexCoord(unpack(q.tc))
+        local pw, ph = qw, qh
+        if q.key == "TopRight" then
+            pw = w - qw
+        elseif q.key == "BotLeft" then
+            ph = h - qh
+        elseif q.key == "BotRight" then
+            pw, ph = w - qw, h - qh
+        end
+        tex:SetSize(pw, ph)
         if q.key == "TopLeft" then
             tex:SetPoint(q.point, model, q.rel, 0, 0)
             topLeft = tex
@@ -92,26 +112,33 @@ local function buildBackground()
     model._duiRaceBgOverlay = overlay
 end
 
-local function applyRaceBackground()
-    local model = _G.CharacterModelFrame
+local function applyRaceBackground(model, unit)
+    model = model or _G.CharacterModelFrame
     if not model or not model._duiRaceBg then return end
 
     -- Read plainly, never as `~= false`: Config() falls back to an empty table before the database
     -- is up, and under that idiom a missing value would read as ENABLED.
     local grey = CP:Config().grey_model_backdrop and true or false
-    local base = racePath()
+    local base = racePath(unit)
     for suffix, tex in pairs(model._duiRaceBg) do
         tex:SetTexture(base .. suffix)
         tex:SetDesaturated(grey)
         tex:Show()
     end
     if model._duiRaceBgOverlay then
-        model._duiRaceBgOverlay:SetAlpha(grey and overlayAlpha() or 0)
+        model._duiRaceBgOverlay:SetAlpha(grey and overlayAlpha(unit) or 0)
         model._duiRaceBgOverlay:Show()
     end
 end
 
 CP.ApplyModelBackdrop = applyRaceBackground
+
+-- Shared with the Ascension skin, which builds the same backdrop on its own model viewport; the
+-- Inspect passes its unit ("target") so the backdrop reads that target's race, not the player's.
+function CP.BuildModelBackdrop(model, unit)
+    buildRaceBackdrop(model)
+    applyRaceBackground(model, unit)
+end
 
 -- Blizzard anchors the viewport in XML only, so a disable that does not reload leaves the model
 -- sitting where the retail inset used to be.
@@ -132,8 +159,7 @@ end
 
 local function build()
     resizeModel()
-    buildBackground()
-    applyRaceBackground()
+    CP.BuildModelBackdrop(_G.CharacterModelFrame)
 end
 
 CP.RefreshRaceBackground = applyRaceBackground

@@ -206,9 +206,16 @@ local function BuildGeneralTab(scroll)
     local buttons = C:AddSection(scroll, LO["Button Appearance"])
 
     C:AddToggle(buttons, {
-        label = LO["Main Bar Only Background"],
-        desc = LO["Only the main action bar buttons will have a background."],
+        label = LO["Hide Secondary Bar Background"],
+        desc = LO["Hide the background of secondary bar buttons (stance, pet, totem, etc.)."],
         dbPath = "buttons.only_actionbackground",
+        callback = RefreshButtons,
+    })
+
+    C:AddToggle(buttons, {
+        label = LO["Hide Main Bar Button Background"],
+        desc = LO["Hide the background of main action bar buttons."],
+        dbPath = "buttons.hide_main_bar_button_background",
         callback = RefreshButtons,
     })
 
@@ -218,6 +225,18 @@ local function BuildGeneralTab(scroll)
         dbPath = "buttons.hide_main_bar_background",
         requiresReload = true,
         callback = RefreshBars,
+    })
+
+    -- ====================================================================
+    -- BEHAVIOR
+    -- ====================================================================
+    local behavior = C:AddSection(scroll, LO["Behavior"])
+
+    C:AddToggle(behavior, {
+        label = LO["Disable Form Page Switching"],
+        desc = LO["When enabled, the main action bar stays on the same page regardless of stance/form changes. Useful for druids, warriors, and CoA Classes who prefer manual page management."],
+        dbPath = "modules.mainbars.disable_form_page_switching",
+        requiresReload = true,
     })
 
     -- Text visibility sub-section
@@ -785,55 +804,6 @@ local function BuildVisibilityTab(scroll)
     local desc = C:AddSection(scroll, LO["Bar Visibility"])
     C:AddDescription(desc,
         LO["Control when action bars are visible. Bars can show only on hover, only in combat, or both. When no option is checked the bar is always visible."])
-
-    local fadeSection = C:AddSection(scroll, LO["Hover Fade"])
-
-    C:AddSlider(fadeSection, {
-        label = LO["Visible Alpha"],
-        desc = LO["Opacity when a bar is considered visible by hover/combat rules."],
-        dbPath = "actionbars.visibility_shown_alpha",
-        min = 0, max = 1, step = 0.01,
-        isPercent = true,
-        width = 250,
-        callback = RefreshVisibility,
-    })
-
-    C:AddSlider(fadeSection, {
-        label = LO["Hidden Alpha"],
-        desc = LO["Opacity when a bar is hidden by hover/combat rules. Set above 0 to keep bars faintly visible."],
-        dbPath = "actionbars.visibility_hidden_alpha",
-        min = 0, max = 1, step = 0.01,
-        isPercent = true,
-        width = 250,
-        callback = RefreshVisibility,
-    })
-
-    C:AddSlider(fadeSection, {
-        label = LO["Fade In Duration"],
-        desc = LO["Seconds used to fade bars in when they become visible."],
-        dbPath = "actionbars.visibility_fade_in_duration",
-        min = 0, max = 1, step = 0.01,
-        width = 250,
-        callback = RefreshVisibility,
-    })
-
-    C:AddSlider(fadeSection, {
-        label = LO["Fade Out Duration"],
-        desc = LO["Seconds used to fade bars out when they become hidden."],
-        dbPath = "actionbars.visibility_fade_out_duration",
-        min = 0, max = 1, step = 0.01,
-        width = 250,
-        callback = RefreshVisibility,
-    })
-
-    C:AddSlider(fadeSection, {
-        label = LO["Fade Out Delay"],
-        desc = LO["Delay before hover-out starts fading, useful to avoid flicker between buttons."],
-        dbPath = "actionbars.visibility_fade_out_delay",
-        min = 0, max = 1, step = 0.01,
-        width = 250,
-        callback = RefreshVisibility,
-    })
 
     local logicValues = {
         ["and"] = LO["AND (both required)"],

@@ -442,6 +442,129 @@ local function BuildEnhancementsTab(scroll)
     })
 
     -- ====================================================================
+    -- LOW HP ALERT MODULE
+    -- ====================================================================
+    C:AddSpacer(scroll)
+    local lhpSection = C:AddSection(scroll, LO["Low HP Alert"])
+
+    C:AddDescription(lhpSection, LO["Plays a sound and flashes the screen edges when your HP drops below the configured threshold."])
+
+    C:AddToggle(lhpSection, {
+        label = LO["Enable Low HP Alert"],
+        getFunc = function() return GetModuleField("hp_low_alert", "enabled") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.enabled = val
+        end,
+    })
+
+    C:AddToggle(lhpSection, {
+        label = LO["Warning Sound (every 3 sec)"],
+        desc = LO["Plays a warning sound every 3 seconds while HP is below threshold."],
+        getFunc = function() return GetModuleField("hp_low_alert", "soundEnabled") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.soundEnabled = val
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+    })
+
+    C:AddToggle(lhpSection, {
+        label = LO["Screen Edge Flash"],
+        desc = LO["Flashes red at the edges of the screen while HP is below threshold."],
+        getFunc = function() return GetModuleField("hp_low_alert", "flashEnabled") ~= false end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.flashEnabled = val
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+    })
+
+    C:AddColorPicker(lhpSection, {
+        label = LO["Flash Color"],
+        getFunc = function()
+            local c = GetModuleField("hp_low_alert", "flashColor")
+            if c then return c.r or 1, c.g or 0, c.b or 0 end
+            return 1, 0, 0
+        end,
+        setFunc = function(r, g, b)
+            EnsureModuleTable("hp_low_alert").flashColor = { r = r, g = g, b = b }
+        end,
+        callback = function()
+            if addon.RefreshHpLowAlertFlash then addon.RefreshHpLowAlertFlash() end
+        end,
+        disabled = function()
+            return not IsEnabled("hp_low_alert") or GetModuleField("hp_low_alert", "useClassColor")
+        end,
+        hasAlpha = false,
+    })
+
+    C:AddToggle(lhpSection, {
+        label = LO["Use Class Color"],
+        desc = LO["Use your class color (e.g. orange for Druid, yellow for Rogue) instead of the custom color."],
+        getFunc = function() return GetModuleField("hp_low_alert", "useClassColor") == true end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert").useClassColor = val
+            if addon.RefreshHpLowAlertFlash then addon.RefreshHpLowAlertFlash() end
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+    })
+
+    C:AddSlider(lhpSection, {
+        label = LO["Flash Opacity"],
+        desc = LO["Maximum opacity of the flash effect."],
+        getFunc = function() return GetModuleField("hp_low_alert", "flashOpacity") or 0.35 end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.flashOpacity = val
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+        min = 0.05,
+        max = 1.0,
+        step = 0.05,
+    })
+
+    C:AddSlider(lhpSection, {
+        label = LO["Flash Extent"],
+        desc = LO["How far the flash extends from the screen edges toward the center, in pixels."],
+        getFunc = function() return GetModuleField("hp_low_alert", "flashExtent") or 40 end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.flashExtent = val
+            if addon.RefreshHpLowAlertFlash then addon.RefreshHpLowAlertFlash() end
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+        min = 20,
+        max = 600,
+        step = 10,
+    })
+
+    C:AddSlider(lhpSection, {
+        label = LO["HP Warning Threshold"],
+        desc = LO["Percentage of HP at which the warning triggers."],
+        getFunc = function() return GetModuleField("hp_low_alert", "threshold") or 30 end,
+        setFunc = function(val)
+            EnsureModuleTable("hp_low_alert")
+            addon.db.profile.modules.hp_low_alert.threshold = val
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+        min = 5,
+        max = 80,
+        step = 1,
+    })
+
+    C:AddButton(lhpSection, {
+        label = LO["Test Warning (3 sec)"],
+        desc = LO["Triggers a 3-second preview of the warning state to help you adjust the threshold."],
+        callback = function()
+            if addon.LowHPAlert and addon.LowHPAlert.StartTest then
+                addon.LowHPAlert.StartTest()
+            end
+        end,
+        disabled = function() return not IsEnabled("hp_low_alert") end,
+    })
+
+    -- ====================================================================
     -- ENHANCED TOOLTIPS
     -- ====================================================================
     C:AddSpacer(scroll)
@@ -501,6 +624,19 @@ local function BuildEnhancementsTab(scroll)
     })
 
     C:AddToggle(ttSection, {
+        label = LO["Player Stats"],
+        desc = LO["Add item level, PvE/PvP power and prestige for player units."],
+        getFunc = function()
+            return GetModuleField("tooltip", "player_stats") ~= false
+        end,
+        setFunc = function(val)
+            EnsureModuleTable("tooltip").player_stats = val
+        end,
+        disabled = function() return not IsEnabled("tooltip") end,
+        requiresReload = false,
+    })
+
+    C:AddToggle(ttSection, {
         label = LO["Styled Health Bar"],
         desc = LO["Restyle the tooltip health bar with class/reaction colors and slimmer look."],
         getFunc = function()
@@ -526,6 +662,32 @@ local function BuildEnhancementsTab(scroll)
         requiresReload = false,
     })
 
+    -- ====================================================================
+    -- TRANSMOG COLLECTOR (Ascension)
+    -- ====================================================================
+    C:AddSpacer(scroll)
+    local tmSection = C:AddSection(scroll, LO["Transmog Collector"])
+
+    C:AddDescription(tmSection, LO["Automatically collect transmog appearances when looting new items. Works with Ascension's Ctrl+Alt+Click appearance system."])
+
+    C:AddToggle(tmSection, {
+        label = LO["Enable Transmog Collector"],
+        desc = LO["On loot, auto-collects appearances for items you haven't learned yet."],
+        getFunc = function() return IsEnabled("transmog_collector") end,
+        setFunc = function(val)
+            EnsureModuleTable("transmog_collector").enabled = val
+            if val then
+                if addon.ApplyTransmogCollectorSystem then
+                    addon.ApplyTransmogCollectorSystem()
+                end
+            else
+                if addon.RestoreTransmogCollectorSystem then
+                    addon.RestoreTransmogCollectorSystem()
+                end
+            end
+        end,
+    })
+    
     C:AddToggle(ttSection, {
         label = LO["Show Aura Source"],
         desc = LO["Show the caster's name (class-colored) and spell ID on buff and debuff tooltips."],

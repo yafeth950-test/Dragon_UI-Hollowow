@@ -78,6 +78,16 @@ local WEAPON_SLOTS = {
     INVTYPE_RANGED = true, INVTYPE_THROWN = true, INVTYPE_RANGEDRIGHT = true,
 }
 
+-- Every equippable slot: proficiency tables cover armor/weapons, tooltip red covers the rest.
+local EQUIPPABLE_SLOTS = {
+    INVTYPE_NECK = true, INVTYPE_FINGER = true, INVTYPE_TRINKET = true,
+    INVTYPE_CLOAK = true, INVTYPE_BODY = true, INVTYPE_TABARD = true,
+    INVTYPE_SHIELD = true, INVTYPE_HOLDABLE = true, INVTYPE_RELIC = true,
+    INVTYPE_AMMO = true, INVTYPE_QUIVER = true,
+}
+for slot in pairs(ARMOR_SLOTS) do EQUIPPABLE_SLOTS[slot] = true end
+for slot in pairs(WEAPON_SLOTS) do EQUIPPABLE_SLOTS[slot] = true end
+
 local function GetArmorSubs()
     if armorSubs then return armorSubs end
     local _, cloth, leather, mail, plate, shields = GetAuctionItemSubClasses(2)
@@ -133,10 +143,12 @@ local function IsWrongArmorOrShield(link)
     local subs = GetArmorSubs()
 
     if equipLoc == "INVTYPE_SHIELD" then
+        if not CLASS_ARMOR[classFile] then return false end -- unknown class (CoA): defer to tooltip scan
         return not CLASS_SHIELD[classFile]
     end
     if not ARMOR_SLOTS[equipLoc] then return false end
     if itemType ~= select(2, GetAuctionItemClasses()) then return false end
+    if not CLASS_ARMOR[classFile] then return false end -- unknown class (CoA): defer to tooltip scan
 
     local key = (subType == subs.cloth and "cloth")
         or (subType == subs.leather and "leather")
@@ -160,7 +172,8 @@ local function IsWrongWeapon(link)
 
     local _, classFile = UnitClass("player")
     if not classFile then return false end
-    return not (CLASS_WEAPONS[classFile] and CLASS_WEAPONS[classFile][key])
+    if not CLASS_WEAPONS[classFile] then return false end -- unknown class (CoA): defer to tooltip scan
+    return not CLASS_WEAPONS[classFile][key]
 end
 
 -- Level/skill/class/race/reputation/proficiency, equippable or not. Returns nil if tooltip empty (uncached).
@@ -185,9 +198,11 @@ local function TooltipHasRedRequirement(link, bag, slot)
     local function IsRed(fs)
         if not fs or not fs:IsShown() then return false end
         local text = fs:GetText()
-        if text and text:find(redCode, 1, true) then return true end
+        if not text or text == "" then return false end
+        if text:find(redCode, 1, true) then return true end
         local r, g, b = fs:GetTextColor()
-        return r and r > 0.9 and g < 0.2 and b < 0.2 or false
+        if r and r > 0.9 and g < 0.2 and b < 0.2 then return true end
+        return false
     end
     for i = 2, numLines do
         -- Weapon/armor subtype sits on the RIGHT of its line and is what reddens for a proficiency the class lacks.
@@ -229,10 +244,13 @@ function addon:IsItemUnusableForTint(link, bag, slot)
     elseif wrongArmor or wrongWeapon then
         unusable = true
     else
-        local reqLevel = select(5, GetItemInfo(link))
-        if reqLevel and reqLevel > UnitLevel("player") then
-            unusable = true
-        else
+        -- Gear slots only — not consumables. Level requirement is intentionally
+        -- left to the tooltip scan below: server-side item level/level
+        -- rescaling (e.g. custom CoA itemization) can differ from the value
+        -- cached client-side by GetItemInfo, so the tooltip is the only
+        -- reliable source of truth here.
+        local equipLoc = select(9, GetItemInfo(link))
+        if equipLoc and EQUIPPABLE_SLOTS[equipLoc] then
             local red = TooltipHasRedRequirement(link, bag, slot)
             if red == nil then
                 cacheable = false
@@ -246,7 +264,7 @@ function addon:IsItemUnusableForTint(link, bag, slot)
     if itemID and cacheable then
         unusableTintCache[itemID] = unusable
     end
-    return unusable
+    return unusable, not cacheable -- true if uncertain (data not fully loaded yet)
 end
 
 function addon:RefreshUnusableItemTints()

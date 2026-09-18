@@ -507,6 +507,21 @@ local function InstallHooks()
                     StyleAura(enchant, false, "TempEnchant" .. i .. "Border", false)
                 end
             end
+            -- VanityBuffs container (Ascension) — styled like a buff, no debuff border to suppress.
+            -- Skip styling when the user has DragonUI's "Hide Vanity Buffs" option on; in that
+            -- case restore any chrome we previously applied so the border does not linger after
+            -- the container is hidden by buff_frame.lua's Show -> Hide hook.
+            if VanityBuffs then
+                local hideVanity = addon.db and addon.db.profile and addon.db.profile.buffs
+                    and addon.db.profile.buffs.hide_vanity_buffs == true
+                if hideVanity then
+                    if (VanityBuffs.duiFrame or VanityBuffs.duiHost) and not VanityBuffs:IsShown() then
+                        RestoreButton(VanityBuffs)
+                    end
+                elseif VanityBuffs:IsShown() then
+                    StyleAura(VanityBuffs, false, nil, false)
+                end
+            end
         end)
     end
 
@@ -539,6 +554,20 @@ local function RestyleAll()
         end
         for i = 1, MAX_TARGET_DEBUFFS do
             RestyleShown(frameName .. "Debuff" .. i, true, "Border", true)
+        end
+    end
+    -- VanityBuffs container (Ascension). Skip when DragonUI's Hide Vanity Buffs
+    -- option is on; otherwise RestyleShown would re-apply the chrome even though
+    -- the container is intentionally hidden.
+    if VanityBuffs then
+        local hideVanity = addon.db and addon.db.profile and addon.db.profile.buffs
+            and addon.db.profile.buffs.hide_vanity_buffs == true
+        if hideVanity then
+            if (VanityBuffs.duiFrame or VanityBuffs.duiHost) and not VanityBuffs:IsShown() then
+                RestoreButton(VanityBuffs)
+            end
+        else
+            RestyleShown("VanityBuffs", false, nil, false)
         end
     end
 end

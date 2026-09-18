@@ -99,6 +99,7 @@ if isAscensionServer then
         _G.QuestLogMicroButton,
         _G.SocialsMicroButton,
         _G.LFDMicroButton,
+        _G.CollectionsMicroButton,
         _G.PathToAscensionMicroButton,
         _G.ChallengesMicroButton,
         _G.MainMenuMicroButton,
@@ -188,6 +189,10 @@ if isAscensionServer then
     MicromenuAtlas["UI-HUD-MicroMenu-PathToAscension-Down"] = {0.0654297, 0.12793, 0.822266, 0.982422}
     MicromenuAtlas["UI-HUD-MicroMenu-PathToAscension-Mouseover"] = {0.129883, 0.192383, 0.00195312, 0.162109}
     MicromenuAtlas["UI-HUD-MicroMenu-PathToAscension-Up"] = {0.129883, 0.192383, 0.166016, 0.326172}
+    MicromenuAtlas["UI-HUD-MicroMenu-Collections-Disabled"] = {0.0654297, 0.12793, 0.658203, 0.818359}
+    MicromenuAtlas["UI-HUD-MicroMenu-Collections-Down"] = {0.0654297, 0.12793, 0.822266, 0.982422}
+    MicromenuAtlas["UI-HUD-MicroMenu-Collections-Mouseover"] = {0.129883, 0.192383, 0.00195312, 0.162109}
+    MicromenuAtlas["UI-HUD-MicroMenu-Collections-Up"] = {0.129883, 0.192383, 0.166016, 0.326172}
 else
     MicromenuAtlas["UI-HUD-MicroMenu-Collections-Disabled"] = {0.0654297, 0.12793, 0.658203, 0.818359}
     MicromenuAtlas["UI-HUD-MicroMenu-Collections-Down"] = {0.0654297, 0.12793, 0.822266, 0.982422}
@@ -434,6 +439,7 @@ local function GetAtlasKey(buttonName)
             questlog = "UI-HUD-MicroMenu-Questlog",
             socials = "UI-HUD-MicroMenu-GuildCommunities",
             lfd = "UI-HUD-MicroMenu-Groupfinder",
+            collections = "UI-HUD-MicroMenu-Collections",
             pathtoascension = "UI-HUD-MicroMenu-PathToAscension",
             challenges = "UI-HUD-MicroMenu-Challenges",
             mainmenu = "UI-HUD-MicroMenu-Shop",
@@ -798,15 +804,19 @@ local function RestoreMicromenuSystem()
                 if original.textures then
                     if original.textures.normal and button:GetNormalTexture() then
                         button:GetNormalTexture():SetTexture(original.textures.normal)
+                        button:GetNormalTexture():SetDesaturated(false)
                     end
                     if original.textures.pushed and button:GetPushedTexture() then
                         button:GetPushedTexture():SetTexture(original.textures.pushed)
+                        button:GetPushedTexture():SetDesaturated(false)
                     end
                     if original.textures.highlight and button:GetHighlightTexture() then
                         button:GetHighlightTexture():SetTexture(original.textures.highlight)
+                        button:GetHighlightTexture():SetDesaturated(false)
                     end
                     if original.textures.disabled and button:GetDisabledTexture() then
                         button:GetDisabledTexture():SetTexture(original.textures.disabled)
+                        button:GetDisabledTexture():SetDesaturated(false)
                     end
                 end
 
@@ -833,6 +843,10 @@ local function RestoreMicromenuSystem()
                 if button.DragonUIPVPIcon then
                     button.DragonUIPVPIcon:Hide()
                     button.DragonUIPVPIcon = nil
+                end
+                if button.DragonUIGrayBackground then
+                    button.DragonUIGrayBackground:Hide()
+                    button.DragonUIGrayBackground = nil
                 end
 
                 if button == _G.CharacterMicroButton and MicroButtonPortrait then
@@ -1993,6 +2007,29 @@ local function setupMicroButtons(xOffset)
         end
     end
 
+    -- The grayscale atlas sheet has no art for Ascension-only buttons
+    -- (PathToAscension, Challenges). When the grayscale atlas is missing,
+    -- fall back to the colored art desaturated so grayscale mode never
+    -- aborts mid-pass (which previously left the strip half-resized).
+    local MICROMENU_COLOR_SHEET = 'Interface\\AddOns\\DragonUI\\Textures\\Micromenu\\uimicromenu2x'
+    local function ApplyMicroButtonGrayscale(texture, atlasKey, coords, button)
+        if not texture then return end
+        -- Always re-anchor the texture to the button, exactly like the colored
+        -- path. On Ascension the strip textures carry their own 27x58 size
+        -- anchored BOTTOMLEFT; without ClearAllPoints+SetAllPoints the gray
+        -- icons keep that size and render giant over the small buttons.
+        texture:ClearAllPoints()
+        texture:SetAllPoints(button)
+        if addon.atlasinfo and addon.atlasinfo[atlasKey] then
+            texture:SetDesaturated(false)
+            texture:set_atlas(atlasKey)
+        elseif coords and #coords >= 4 then
+            texture:SetTexture(MICROMENU_COLOR_SHEET)
+            texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+            texture:SetDesaturated(true)
+        end
+    end
+
     for i = 1, #MICRO_BUTTONS do
         local button = MICRO_BUTTONS[i]
         if button and not button.dragonUISuppressed then
@@ -2022,7 +2059,7 @@ local function setupMicroButtons(xOffset)
             if button.SetEnabled and wasEnabled then
                 button:SetEnabled(true)
             end
-            if wasVisible then
+            if wasVisible or buttonName == "Collections" then
                 button:Show()
             end
 
@@ -2050,17 +2087,50 @@ local function setupMicroButtons(xOffset)
                     button.DragonUIHover:Hide()
                 end
 
+                -- Ascension-only buttons (PathToAscension, Challenges) have no art in the
+                -- grayscale sheet, so their fallback glyph is the colored art alone. Draw the
+                -- shared box (MicroMenu-Empty from Textures/UI/MicroMenu.blp) behind them so
+                -- they do not float without a background.
+                if not addon.atlasinfo or not addon.atlasinfo['ui-hud-micromenu-' .. name .. '-up-2x'] then
+                    if not button.DragonUIGrayBackground then
+                        local bg = button:CreateTexture(nil, 'BACKGROUND')
+                        if addon.atlasinfo and addon.atlasinfo['MicroMenu-Empty'] then
+                            bg:set_atlas('MicroMenu-Empty')
+                        end
+                        bg:ClearAllPoints()
+                        bg:SetPoint('TOPLEFT', button, 'TOPLEFT', 0, 0)
+                        button.DragonUIGrayBackground = bg
+                    end
+                    -- MicroMenu-Empty's box fills its whole 51x69 cell, while every other
+                    -- grayscale button's baked box is 36x48 inside a 38x52 cell. Shrink the
+                    -- texture (36/38 x 48/52 of the button, adjusted for the cell fill) so
+                    -- the box renders at the same size as the other buttons'. Re-assert each
+                    -- pass so the box keeps matching if the bar gets rescaled.
+                    local bg = button.DragonUIGrayBackground
+                    local w, h = button:GetSize()
+                    if w and w > 0 and h and h > 0 then
+                        bg:SetSize(w * 36/38 * 51/50, h * 48/52 * 69/69)
+                    end
+                    bg:Show()
+                elseif button.DragonUIGrayBackground then
+                    button.DragonUIGrayBackground:Hide()
+                end
+
                 if normalTexture then
-                    normalTexture:set_atlas('ui-hud-micromenu-' .. name .. '-up-2x')
+                    ApplyMicroButtonGrayscale(normalTexture, 'ui-hud-micromenu-' .. name .. '-up-2x',
+                        GetColoredTextureCoords(name, "Up"), button)
                 end
                 if pushedTexture then
-                    pushedTexture:set_atlas('ui-hud-micromenu-' .. name .. '-down-2x')
+                    ApplyMicroButtonGrayscale(pushedTexture, 'ui-hud-micromenu-' .. name .. '-down-2x',
+                        GetColoredTextureCoords(name, "Down"), button)
                 end
                 if disabledTexture then
-                    disabledTexture:set_atlas('ui-hud-micromenu-' .. name .. '-disabled-2x')
+                    ApplyMicroButtonGrayscale(disabledTexture, 'ui-hud-micromenu-' .. name .. '-disabled-2x',
+                        GetColoredTextureCoords(name, "Disabled"), button)
                 end
                 if highlightTexture then
-                    highlightTexture:set_atlas('ui-hud-micromenu-' .. name .. '-mouseover-2x')
+                    ApplyMicroButtonGrayscale(highlightTexture, 'ui-hud-micromenu-' .. name .. '-mouseover-2x',
+                        GetColoredTextureCoords(name, "Mouseover"), button)
                 end
             elseif isPVPButton then
                 SetupPVPButton(button)

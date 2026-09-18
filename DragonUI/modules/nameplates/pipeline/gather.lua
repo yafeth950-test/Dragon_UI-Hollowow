@@ -470,21 +470,67 @@ function NP.gather.GetHealthBarColor(plateData, skipFriendlyClass)
     end
 
     local reaction, unitType = NP.native_style.GetPlateReaction(plateData)
-    if reaction == "FRIENDLY" and unitType == "PLAYER"
-        and plateData.barB
-        and plateData.barB > 0.5 and (plateData.barR or 0) < 0.3 and (plateData.barG or 0) < 0.3 then
-        if not skipFriendlyClass then
-            local cr, cg, cb = NP.gather.GetFriendlyPlayerClassColor(plateData)
-            if cr then
-                return cr, cg, cb
+        -- Ascension: GetPlateReaction already corrects attackability under Mercenary;
+        -- trust the reaction directly instead of requiring a blue-ish bar color.
+        if reaction == "FRIENDLY" and unitType == "PLAYER" then
+            if not skipFriendlyClass then
+                if cfg.friendlyClassColors then
+                    if not plateData._friendlyHealthClass then
+                        local token = ResolvePlateToken(plateData)
+                        if token and UnitExists(token) and UnitIsPlayer(token) then
+                            local _, class = UnitClass(token)
+                            if class then
+                                plateData._friendlyHealthClass = class
+                            end
+                        end
+                    end
+                    local cc = plateData._friendlyHealthClass and RAID_CLASS_COLORS
+                        and RAID_CLASS_COLORS[plateData._friendlyHealthClass]
+                    if cc then
+                        return cc.r, cc.g, cc.b
+                    end
+                end
+                if cfg.partyClassColors then
+                    local partyUnit = GetPartyUnitForPlate(plateData)
+                    if partyUnit then
+                        local _, class = UnitClass(partyUnit)
+                        if class and RAID_CLASS_COLORS[class] then
+                            return RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
+                        end
+                    end
+                end
             end
-        end
         if cfg.friendlyPlayerColor then
             return cfg.friendlyPlayerColor.r, cfg.friendlyPlayerColor.g, cfg.friendlyPlayerColor.b
         end
     end
     if reaction == "FRIENDLY" and unitType == "NPC" and cfg.friendlyNPCColor then
         return cfg.friendlyNPCColor.r, cfg.friendlyNPCColor.g, cfg.friendlyNPCColor.b
+    end
+    -- Ascension: any hostile player needs manual class color from the unit token.
+    -- The CVar ShowClassColorInNameplate may not recolor the native bar on custom
+    -- class forks (Reaper/Engineer/...), and custom class tokens are not in the
+    -- bar-color table, so we cannot rely on plateData.barR/barG/barB here.
+    if reaction == "HOSTILE" and unitType == "PLAYER" then
+        if cfg.enemyPlayerClassColors ~= false then
+            local token = ResolvePlateToken(plateData)
+            if token and UnitExists(token) and UnitIsPlayer(token) then
+                local _, class = UnitClass(token)
+                if class and RAID_CLASS_COLORS[class] then
+                    return RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
+                end
+            end
+        end
+        -- Same-faction Mercenary keeps a blue native bar; never copy it to a hostile plate.
+        if plateData.barB and plateData.barB > 0.5
+            and (plateData.barR or 0) < 0.3 and (plateData.barG or 0) < 0.3 then
+            return 1, 0.1, 0.1
+        end
+        -- Class colors disabled or class unresolved: fall back to native bar (red hostil, etc.).
+        if plateData.barR then
+            return plateData.barR, plateData.barG, plateData.barB
+        end
+        return 1, 0.1, 0.1
     end
     if plateData.barR then
         return plateData.barR, plateData.barG, plateData.barB
@@ -760,9 +806,25 @@ function NP.gather.SyncName(plateData, unit)
 
     local r, g, b = 1, 1, 1
     local classKey = plateData.classKey
-    local classColor = classKey and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classKey]
-    local isEnemyPlayer = classColor and classKey ~= "FRIENDLY_PLAYER"
+    -- Custom Ascension classes (Reaper/Engineer/...) are not in the bar-color table,
+    -- so plateData.classKey is nil for them; resolve the real class via UnitClass.
     local nameReaction, nameUnitType = NP.native_style.GetPlateReaction(plateData)
+    local isEnemyPlayer = (nameReaction == "HOSTILE" and nameUnitType == "PLAYER")
+    if isEnemyPlayer and not classKey and cfg.enemyPlayerClassColors ~= false then
+        local token = ResolvePlateToken(plateData)
+        if token and UnitExists(token) and UnitIsPlayer(token) then
+            local _, class = UnitClass(token)
+            if class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class] then
+                classKey = class
+                plateData.classKey = class
+            end
+        end
+    end
+    local classColor = classKey and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classKey]
+    if classKey == "FRIENDLY_PLAYER" then
+        isEnemyPlayer = false
+        classColor = nil
+    end
     local isFriendlyPlayer = nameReaction == "FRIENDLY" and nameUnitType == "PLAYER"
     local allowEnemyNameClass = cfg.enemyPlayerClassColors ~= false and cfg.enemyNameClassColors == true
     local allowFriendlyNameClass = cfg.friendlyNameClassColors == true
@@ -771,13 +833,13 @@ function NP.gather.SyncName(plateData, unit)
         local skipFriendlyClass = isFriendlyPlayer and not allowFriendlyNameClass
         r, g, b = NP.gather.GetHealthBarColor(plateData, skipFriendlyClass)
         if isEnemyPlayer then
-            if allowEnemyNameClass then
+            if allowEnemyNameClass and classColor then
                 r, g, b = classColor.r, classColor.g, classColor.b
             else
                 r, g, b = 1, 0.1, 0.1
             end
         end
-    elseif isEnemyPlayer and allowEnemyNameClass then
+    elseif isEnemyPlayer and allowEnemyNameClass and classColor then
         r, g, b = classColor.r, classColor.g, classColor.b
     elseif isFriendlyPlayer and allowFriendlyNameClass then
         local cr, cg, cb = NP.gather.GetFriendlyPlayerClassColor(plateData)
@@ -1138,11 +1200,32 @@ function NP.gather.ProcessThreatTransitions()
     end
 end
 
--- Reaction drift (200ms): re-gather when native bar color changes.
+-- Reaction drift (200ms): re-gather when native bar color changes or
+-- when UnitCanAttack changes for player plates (Ascension Mercenary / PvP toggle).
 function NP.gather.ProcessReactionDrift()
     for _, plateData in pairs(NP.module.plates) do
         local bar = plateData.healthBar
-        if bar and bar.GetStatusBarColor and plateData.barR then
+        if not bar or not bar.GetStatusBarColor or not plateData.barR then
+            -- No bar color baseline yet; skip attackability check too (no styled plate).
+        else
+            -- Ascension: detect attackability changes for player plates without bar color drift.
+            local unit = plateData.namePlateUnitToken or (plateData.plate and plateData.plate.unit)
+            if unit and UnitExists(unit) and UnitIsPlayer(unit) then
+                local canAttack = UnitCanAttack("player", unit)
+                if plateData._lastCanAttack ~= nil and plateData._lastCanAttack ~= canAttack then
+                    if addon.debugMode then
+                        print(string.format(
+                            "|cFFFFFF00[DUI nameplate debug]|r ProcessReactionDrift attackability name=%s canAttack=%s",
+                            tostring(plateData.plateName), tostring(canAttack)))
+                    end
+                    plateData._lastCanAttack = canAttack
+                    NP.gather.RefreshPlateFull(plateData, "reaction_drift")
+                    -- RefreshPlateFull recaptured barR/G/B; bar color check below will be a no-op.
+                else
+                    plateData._lastCanAttack = canAttack
+                end
+            end
+
             local r, g, b = bar:GetStatusBarColor()
             if math.abs(r - plateData.barR) > 0.1
                 or math.abs(g - plateData.barG) > 0.1

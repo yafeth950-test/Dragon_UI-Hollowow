@@ -1,0 +1,8 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="config.lua"/>
+	<Script file="utils.lua"/>
+	<Script file="locale.lua"/>
+	<Script file="itemloot.lua"/>
+	<Script file="core.lua"/>
+	<Include file="pretty_lootalert.xml"/>
+</Ui>

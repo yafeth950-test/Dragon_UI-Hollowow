@@ -174,13 +174,70 @@ local defaults = {
                 posY = 160,
                 custom_position = false
             },
+            extraActionButton = {
+                anchor = "CENTER",
+                posX = 0,
+                posY = 0,
+                custom_position = false
+            },
             positionPresetPanel = {
                 anchor = "TOP",
                 posX = 0,
                 posY = 144,
                 relativePoint = "CENTER",
                 custom_position = false
-            }
+            },
+            attackbarPlayer = {
+                anchor = "BOTTOM",
+                posX = 0,
+                posY = 255,
+            },
+            attackbarOffhand = {
+                anchor = "BOTTOM",
+                posX = 0,
+                posY = 275,
+            },
+            attackbarEnemy = {
+                anchor = "BOTTOM",
+                posX = 0,
+                posY = 295,
+            },
+            levelupenhance = {
+                anchor = "TOP",
+                posX = 0,
+                posY = -128,
+            },
+            bnToast = {
+                anchor = "CENTER",
+                posX = 0,
+                posY = 200,
+                custom_position = false,
+            },
+            durabilityframe = {
+                anchor = "TOP",
+                posX = -15,
+                posY = -5,
+                custom_position = false,
+            },
+            playerPrimaryStat = {
+                anchor = "TOPLEFT",
+                posX = 80,
+                posY = -6,
+                custom_position = false,
+            },
+            targetPrimaryStat = {
+                anchor = "TOPRIGHT",
+                posX = -80,
+                posY = -6,
+                custom_position = false,
+            },
+            -- Ascension WildCard dice frame (visible during Draft / WildCard rolls)
+            wildcarddice = {
+                anchor = "TOP",
+                posX = 0,
+                posY = -32,
+                custom_position = false,
+            },
         },
         -- Quest Tracker
         questtracker = {
@@ -189,7 +246,7 @@ local defaults = {
             y = -255,
             show_header = true,
             collapsed = false,   -- Survives reloads; Blizzard's own tracker forgets it
-            font_size = 12,      -- Point size for quest tracker text (WoW default: 11)
+            font_size = 10,      -- Point size for quest tracker text (WoW default: 11)
             show_on_hover = false,
             show_in_combat = false,
             hide_in_combat = false,
@@ -342,7 +399,7 @@ local defaults = {
                 invert_order = false,
             },
 
-            -- Normal colored icons configuration  
+            -- Normal colored icons configuration
             normal = {
                 scale_menu = 0.9,
                 x_position = -113,
@@ -406,6 +463,7 @@ local defaults = {
 
         buttons = {
             only_actionbackground = true,
+            hide_main_bar_button_background = false,
             hide_main_bar_background = false,
             count = {
                 show = true
@@ -441,6 +499,7 @@ local defaults = {
             size = 31,
             spacing = 6,
             stance = {
+                show = true, -- Show/hide stance bar
                 x_position = -211,
                 y_offset = -58, -- Additional Y offset for fine-tuning position
                 button_size = 31, -- Size of stance buttons (native Blizzard size)
@@ -452,6 +511,8 @@ local defaults = {
             },
             pet = {
                 scale = 1.0,
+                columns = 10,
+                buttons_shown = 10,
                 grid = false, -- Disable grid by default (matches original Dragonflight port)
                 show_hotkey = false,
                 show_on_hover = false,
@@ -464,6 +525,7 @@ local defaults = {
                 artstyle = true
             },
             totem = {
+                show = true, -- Show/hide totem bar
                 x_position = 0,
                 y_offset = 2, -- Additional Y offset for fine-tuning position
                 button_size = 34, -- Size of totem buttons (native Blizzard size)
@@ -495,6 +557,7 @@ local defaults = {
         minimap = {
             scale = 1,
             border_alpha = 1,
+            square_border = false, -- true = square minimap border (MinimapSquareBorder.blp)
             blip_skin = true, -- true = new/modern style, false = old/classic Blizzard style
             tracking_icons = true,
             zoom_buttons = false,
@@ -522,12 +585,13 @@ local defaults = {
             visibility_logic = "and",
         },
 
-        --  BUFFS SETTINGS 
+        --  BUFFS SETTINGS
         buffs = {
             enabled = true,
             show_toggle_button = true,
             buffs_hidden = false,
             separate_weapon_enchants = false,
+            hide_vanity_buffs = true,
             buff_horizontal_gap = 0,
             debuff_horizontal_gap = 0,
             buff_scale = 1,
@@ -548,6 +612,7 @@ local defaults = {
         -- CASTBAR SETTINGS
         castbar = {
             enabled = true,
+            hidden = false, -- Hide player castbar entirely (DragonUI and Blizzard bars)
             scale = 1,
             text_mode = "simple",
             precision_time = 1,
@@ -570,6 +635,7 @@ local defaults = {
             -- TARGET CASTBAR SETTINGS
             target = {
                 enabled = true,
+                hidden = false, -- Hide target castbar entirely (DragonUI and Blizzard bars)
                 override = false,
                 scale = 1,
                 x_position = 0,
@@ -593,6 +659,7 @@ local defaults = {
             -- FOCUS CASTBAR SETTINGS
             focus = {
                 enabled = true,
+                hidden = false, -- Hide focus castbar entirely (DragonUI and Blizzard bars)
                 override = false,
                 scale = 1,
                 x_position = 0,
@@ -622,6 +689,9 @@ local defaults = {
                 breakUpLargeNumbers = true,
                 scale = 1.0,
                 classcolor = false,
+                classColorName = false, -- Use class color for player name text
+                centerName = true, -- Center the player name above the health bar
+                showGroupIndicator = true, -- Show raid subgroup indicator on player frame
                 classPortrait = false, -- Show class icon instead of character portrait
                 alternativeClassIcons = false, -- Use DragonUI alternative class icons for class portraits
                 textFormat = "both",
@@ -634,7 +704,7 @@ local defaults = {
                 show_rest_glow = true, -- Show golden glow when resting (inn/city)
                 combat_flash_enabled = true, -- Enable combat flash pulse animation
                 combat_flash_opacity = 1.0, -- Opacity multiplier for combat flash (0.0 - 1.0)
-                fat_healthbar = false, -- Full-width health bar 
+                fat_healthbar = false, -- Full-width health bar
                 fat_manabar_width = 200,
                 fat_manabar_height = 8,
                 fat_manabar_hidden = false,
@@ -655,6 +725,10 @@ local defaults = {
             },
             target = {
                 classcolor = false,
+                classColorName = false, -- Use class color for target name text
+                centerName = true, -- Center the target name above the health bar
+                show_buffs = true, -- Show buff icons on target frame
+                show_debuffs = true, -- Show debuff icons on target frame
                 classPortrait = false, -- Show class icon instead of character portrait
                 alternativeClassIcons = false, -- Use DragonUI alternative class icons for class portraits
                 breakUpLargeNumbers = true,
@@ -672,6 +746,10 @@ local defaults = {
             },
             focus = {
                 classcolor = false,
+                classColorName = false, -- Use class color for focus name text
+                centerName = true, -- Center the focus name above the health bar
+                show_buffs = true, -- Show buff icons on focus frame
+                show_debuffs = true, -- Show debuff icons on focus frame
                 classPortrait = false, -- Show class icon instead of character portrait
                 alternativeClassIcons = false, -- Use DragonUI alternative class icons for class portraits
                 breakUpLargeNumbers = true,
@@ -763,6 +841,15 @@ local defaults = {
             noop = {
                 enabled = true -- Hide default Blizzard UI elements to allow DragonUI replacements
             },
+            performance_warmup = {
+                enabled = true -- Pre-load select panels on login to avoid first-use freezes
+            },
+            playerPrimaryStat = {
+                enabled = true -- Primary stat icon movability widget
+            },
+            durabilityframe = {
+                enabled = true -- Durability frame movability widget
+            },
             cooldowns = {
                 enabled = true -- Show cooldown timers on action buttons
             },
@@ -794,6 +881,7 @@ local defaults = {
                     min_duration = 0,
                     max_duration_minutes = 0,
                     font_size = 11,
+                    ignore_keepers_aura = false,
                 },
                 focus = {
                     enabled = false,
@@ -829,7 +917,11 @@ local defaults = {
                 enabled = true -- Apply DragonUI micro menu and bags system styling and positioning
             },
             mainbars = {
-                enabled = true -- Apply DragonUI main action bars, status bars (XP/Rep), scaling, and positioning system
+                enabled = true, -- Apply DragonUI main action bars, status bars (XP/Rep), scaling, and positioning system
+                disable_form_page_switching = false -- When true, the main action bar stays on the same page regardless of stance/form changes (druid shapeshift, warrior stance, CoA custom classes, etc.)
+            },
+            merchant = {
+                enabled = true -- Retail-style vendor window chrome, sell-all-junk button, and buyback undo arrow
             },
             minimap = {
                 enabled = true -- Apply DragonUI minimap enhancements including custom styling, positioning, tracking icons, and calendar
@@ -954,6 +1046,11 @@ local defaults = {
                 showEliteIcon = true, -- show elite/rare dragon icon on nameplates
                 eliteIconStyle = "dragon", -- "dragon" | "star" (star uses *-icon-old textures)
                 showComboPoints = false, -- show combo points on target nameplate
+                comboAnchor = "TOP", -- "TOP" | "BOTTOM" | "LEFT" | "RIGHT" relative to target health bar
+                comboOffsetX = 0, -- horizontal offset from the anchor point (screen-space: positive = right)
+                comboOffsetY = 0, -- vertical offset from the anchor point (screen-space: positive = up); 0 keeps the historical gap
+                comboScale = 1.0, -- scale multiplier applied to the combo widget host
+                comboPerRow = 0, -- max segments per row on the custom-class path; 0 (or >= class max) renders all in a single row
                 questIcons = { -- quest objective icons on nameplates (kill/loot); stock: target/mouseover/focus only, awesome_wotlk: all plates
                     enabled = true,
                     nameResolution = true, -- token-less: match plate name to active objectives (kill: addon-free, loot: quest-addon DB)
@@ -1039,6 +1136,7 @@ local defaults = {
                 class_colored_border = true, -- Color tooltip border by class/reaction
                 class_colored_name = true, -- Color unit name by class
                 target_of_target = true, -- Show target-of-target line
+                player_stats = true, -- Show item level / PvE-PvP power / prestige line (players only)
                 health_bar = true, -- Show health bar on tooltip
                 anchor_cursor = false, -- Anchor tooltip to cursor
                 show_aura_source = true, -- Show caster name (and spell ID) on buff/debuff tooltips
@@ -1063,6 +1161,9 @@ local defaults = {
                 show_gear_score = false, -- Headline GearScore above the stat categories
                 -- stats_collapsed / stats_order are written by the panel itself, never defaulted:
                 -- an empty default table would be shared by every profile that has not set one.
+            },
+            compactframes = {
+                enabled = true, -- Flat retail-style health bars on compact party/raid frames
             },
             itemlevel = {
                 enabled = true, -- Show item level on gear icons
@@ -1095,6 +1196,15 @@ local defaults = {
                 editboxIdleAlpha = 0, -- Editbox minimum opacity when idle (0 = fades with tabs, 1 = always visible)
                 editboxStyle = "dark", -- Editbox background style: "none", "dark", "dragon", "midnight"
                 vanillaEditbox = false, -- Use the stock chat input appearance instead of the DragonUI one
+            },
+            bnettoast = {
+                enabled = true, -- Friend online/offline notifications with Battle.net toasts
+                show_toast = true, -- Show the BNToastFrame popup when friends come online/go offline
+                show_chat = true, -- Show a chat notification for friend online/offline events
+                guild_notify = true, -- Show notifications for guild members online/offline (set false to only receive friend notifications)
+                scale = 1.0, -- Scale of the BNet toast frame
+                x_position = -270, -- Horizontal position from screen center
+                y_offset = 270, -- Vertical offset
             },
             bagster = {
                 enabled = false, -- All-in-one bag replacement with filtering and search
@@ -1137,8 +1247,46 @@ local defaults = {
             versioncheck = {
                 enabled = true, -- Cross-player version broadcast and update detection
             },
+            inspector = {
+                enabled = true, -- CoA talent tree viewer in inspect frame
+                scale = 0.75, -- Scale of the inspector panel
+            },
+            hp_low_alert = {
+                enabled = true, -- Screen flash and sound when HP drops below threshold
+                threshold = 30, -- HP percentage threshold to trigger warning
+                soundEnabled = false, -- Play warning sound (repeats every 3 sec)
+                flashEnabled = true, -- Flash screen edges red
+                flashColor = { r = 1, g = 0, b = 0 }, -- Color of the screen edge flash
+                useClassColor = false, -- Use player class color instead of flashColor
+                flashOpacity = 0.35, -- Max alpha of the flash (0.0–1.0)
+                flashExtent = 40,  -- Pixels from screen edges toward center
+            },
+            bags_skin = {
+                enabled = true, -- Retail-style textures for bags
+            },
+            transmog_collector = {
+                enabled = false, -- Auto-collect transmog appearances on loot (Ascension)
+            },
+            levelupenhance = {
+                enabled = true, -- Enhanced level-up notification with animated frame
+            },
+            attackbar = {
+                enabled = false, -- Attack bar swing timer (opt-in module)
+                showMainHand = true,
+                showOffHand = true,
+                showRanged = true,
+                showEnemy = true,
+                showTimer = true,
+                showInfo = true,
+                borderStyle = "standard", -- "standard", "thin", "none"
+                scale = 1.0,
+            },
             collections = {
                 enabled = true, -- Dedicated Pets & Mounts window opened from the micro menu
+            },
+            detailsskin = {
+                enabled = true, -- Details! Damage Meter theme: registers the DragonUI skin and restores the player's choice
+                chosen = false, -- true once the player applies the skin; cleared when another skin is picked or the module turns off
             },
             worldmap = {
                 enabled = true, -- Retail-style world map with breadcrumb navigation and a quest log side panel
@@ -1150,14 +1298,37 @@ local defaults = {
                 entrances = true, -- Dungeon and raid entrance pins on zone maps
                 graveyards = true, -- Graveyard pins on zone maps
                 flightPoints = true, -- Flight master pins on zone maps
-            }
+            },
+            iconic = {
+                enabled = true, -- Item icons in chat, merchant improvements, and enhanced item tooltips
+            },
+            itemloot = {
+                enabled = true, -- Pretty loot toast alert notifications
+            },
         },
 
         -- LAYOUT PRESETS (user-saved UI snapshots within this profile)
         presets = {},
 
         -- POSITION PRESETS (edit-mode element positions only)
-        positionPresets = {}
+        positionPresets = {},
+
+        -- Conquest of Azeroth settings
+        CoA = {
+            herocolor = { r = 1, g = 1, b = 1 },
+            classbar = {
+                enable = true,
+                height = 8,
+                detachFromFrame = false,
+                fill = "normal",
+            },
+            energy = {
+                enable = true,
+            },
+            rage = {
+                enable = true,
+            },
+        },
     }
 };
 

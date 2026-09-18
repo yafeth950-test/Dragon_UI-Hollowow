@@ -36,6 +36,14 @@ local function BuildAdditionalBarsTab(scroll)
     local stance = C:AddSection(scroll, LO["Stance Bar"])
 
     C:AddToggle(stance, {
+        label = LO["Show Stance Bar"],
+        dbPath = "additional.stance.show",
+        callback = function()
+            if addon.RefreshStance then addon.RefreshStance() end
+        end,
+    })
+
+    C:AddToggle(stance, {
         label = LO["Show Hotkey Text"],
         dbPath = "additional.stance.show_hotkey",
         callback = RefreshAdditionalBarHotkeys,
@@ -58,6 +66,27 @@ local function BuildAdditionalBarsTab(scroll)
         width = 200,
         callback = function()
             if addon.RefreshStance then addon.RefreshStance() end
+        end,
+    })
+
+    C:AddSlider(stance, {
+        label = LO["X Position"],
+        desc = LO["Horizontal position of stance bar from screen center. Negative values move left, positive values move right."],
+        dbPath = "additional.stance.x_position",
+        min = -600, max = 600, step = 1,
+        width = 200,
+        callback = function()
+            if addon.UpdateStanceBarPosition then addon.UpdateStanceBarPosition() end
+        end,
+    })
+
+    C:AddSlider(stance, {
+        label = LO["Y Offset"],
+        dbPath = "additional.stance.y_offset",
+        min = -200, max = 200, step = 1,
+        width = 200,
+        callback = function()
+            if addon.UpdateStanceBarPosition then addon.UpdateStanceBarPosition() end
         end,
     })
 
@@ -92,6 +121,18 @@ local function BuildAdditionalBarsTab(scroll)
         end,
     })
 
+    -- ---- Pet Bar Layout (grid: columns/buttons) ----
+    local petLayout = C:AddSection(scroll, LO["Pet Bar Layout"])
+    C:AddSlider(petLayout, {
+        dbPath = "additional.pet.columns",
+        label = LO["Columns"],
+        min = 1, max = 10, step = 1,
+        width = 200,
+        callback = function()
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+        end,
+    })
+    
     C:AddToggle(pet, {
         label = LO["Show Empty Slots"],
         desc = LO["Show the button frame on pet slots with no ability assigned."],
@@ -111,6 +152,62 @@ local function BuildAdditionalBarsTab(scroll)
         end,
     })
 
+    C:AddSlider(petLayout, {
+        dbPath = "additional.pet.buttons_shown",
+        label = LO["Buttons Shown"],
+        min = 1, max = 10, step = 1,
+        width = 200,
+        callback = function()
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+        end,
+    })
+
+    local petPresetRow = C:AddRow(petLayout)
+
+    C:AddButton(petPresetRow, {
+        label = "1x10",
+        width = 60,
+        callback = function()
+            C:SetDBValue("additional.pet.columns", 10)
+            C:SetDBValue("additional.pet.buttons_shown", 10)
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+            Panel:SelectTab("additionalbars")
+        end,
+    })
+
+    C:AddButton(petPresetRow, {
+        label = "2x5",
+        width = 60,
+        callback = function()
+            C:SetDBValue("additional.pet.columns", 5)
+            C:SetDBValue("additional.pet.buttons_shown", 10)
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+            Panel:SelectTab("additionalbars")
+        end,
+    })
+
+    C:AddButton(petPresetRow, {
+        label = "5x2",
+        width = 60,
+        callback = function()
+            C:SetDBValue("additional.pet.columns", 2)
+            C:SetDBValue("additional.pet.buttons_shown", 10)
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+            Panel:SelectTab("additionalbars")
+        end,
+    })
+
+    C:AddButton(petPresetRow, {
+        label = "10x1",
+        width = 60,
+        callback = function()
+            C:SetDBValue("additional.pet.columns", 1)
+            C:SetDBValue("additional.pet.buttons_shown", 10)
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+            Panel:SelectTab("additionalbars")
+        end,
+    })
+
     -- ====================================================================
     -- VEHICLE BAR
     -- ====================================================================
@@ -127,6 +224,14 @@ local function BuildAdditionalBarsTab(scroll)
     -- TOTEM BAR
     -- ====================================================================
     local totem = C:AddSection(scroll, LO["Totem Bar (Shaman)"])
+
+    C:AddToggle(totem, {
+        label = LO["Show Totem Bar"],
+        dbPath = "additional.totem.show",
+        callback = function()
+            if addon.RefreshMulticast then addon.RefreshMulticast(true) end
+        end,
+    })
 
     C:AddToggle(totem, {
         label = LO["Show Hotkey Text"],

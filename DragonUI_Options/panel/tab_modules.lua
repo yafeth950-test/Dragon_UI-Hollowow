@@ -187,6 +187,20 @@ local function BuildModulesTab(scroll)
         moduleName = "versioncheck",
     })
 
+    ModuleToggle(uiSection, {
+        label = LO["Loot Toast"],
+        desc = LO["Pretty loot toast alert notifications with custom textures."],
+        moduleName = "itemloot",
+        requiresReload = false,
+        callback = function(val)
+            if val then
+                if addon.ApplyItemLootSystem then addon.ApplyItemLootSystem() end
+            else
+                if addon.RestoreItemLootSystem then addon.RestoreItemLootSystem() end
+            end
+        end,
+    })
+
     -- ====================================================================
     -- UNIT FRAME LAYERS
     -- ====================================================================
@@ -219,6 +233,7 @@ local function BuildModulesTab(scroll)
             boss = true,
             rage_indicator = true,
             buffs = true,
+            itemloot = true,
         }
 
         for _, moduleName in ipairs(MR.loadOrder) do
@@ -256,6 +271,8 @@ local function BuildModulesTab(scroll)
             { key = "nameplates",  name = LO["Nameplates"] },
             { key = "keybinding",  name = LO["KeyBinding"] },
             { key = "questtracker", name = LO["Quest Tracker"] },
+            { key = "iconic",      name = LO["Iconic"] },
+            { key = "itemloot",    name = LO["Loot Toast"] },
         }
         for _, mod in ipairs(knownModules) do
             ModuleToggle(advSection, {

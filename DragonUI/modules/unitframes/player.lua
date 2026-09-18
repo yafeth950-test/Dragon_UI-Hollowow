@@ -21,7 +21,10 @@ local Module = {
     eventsFrame = nil,
     hooks = {},
     registeredEvents = {},
-    originalStates = {}
+    originalStates = {},
+    -- Custom server: classless bars (PlayerFrameClassless*/TargetFrameClassless*)
+    -- already render RAGE/ENERGY, so the vanilla power bar stays MANA in druid forms.
+    keepManaInForms = true,
 }
 
 if addon.RegisterModule then
@@ -336,6 +339,13 @@ local function ApplyFatManaBar()
     local width, height, hidden = GetFatManaConfig()
     if hidden then
         PlayerFrameManaBar:Hide()
+        -- Also hide the alternate mana bar (druid forms, CoA custom class resources)
+        -- so it doesn't appear over/under the health bar when the user chose to
+        -- hide the power bar in Fat Health Bar mode.
+        local alternateManaBar = _G.PlayerFrameAlternateManaBar
+        if alternateManaBar then
+            alternateManaBar:Hide()
+        end
         if Module.fatManaFrame then
             Module.fatManaFrame:SetSize(1, 1)
         end
@@ -476,6 +486,7 @@ local function RemoveBlizzardFrames(isVehicle)
             PlayerFrameVehicleTexture:SetAlpha(0)
         end
     end
+
 end
 
 -- ============================================================================
@@ -896,6 +907,11 @@ local function UpdateGroupIndicator()
 
     groupIndicatorFrame:Hide()
 
+    local config = GetPlayerConfig()
+    if not config.showGroupIndicator then
+        return
+    end
+
     local numRaidMembers = GetNumRaidMembers()
     if numRaidMembers == 0 then
         return
@@ -1119,6 +1135,24 @@ local function UpdatePlayerHealthBarColor()
         PlayerFrameHealthBar:SetStatusBarColor(1, 1, 1, 1)
     end
 end
+
+-- ============================================================================
+-- Update player name color based on class color setting
+local function UpdatePlayerNameColor()
+    if not PlayerName then return end
+    local config = GetPlayerConfig()
+    if config.classColorName then
+        local _, class = UnitClass("player")
+        local color = class and RAID_CLASS_COLORS[class]
+        if color then
+            PlayerName:SetTextColor(color.r, color.g, color.b)
+        end
+    else
+        -- Restore Blizzard default name color (yellow-ish)
+        PlayerName:SetTextColor(1.0, 0.82, 0.0)
+    end
+end
+
 -- Update health bar color and texture
 local function UpdateHealthBarColor(statusBar, unit)
     if not unit then
@@ -1145,7 +1179,13 @@ local function UpdateManaBarColor(statusBar)
         local textureSetting = config and config.manabar_texture or "dragonui"
         if textureSetting ~= "dragonui" then
             -- Override texture: use DB color if available, else fall back to DF defaults
-            local _, powerToken = UnitPowerType('player')
+            local powerToken
+            if Module.keepManaInForms then
+                powerToken = "MANA"
+            else
+                local _, token = UnitPowerType('player')
+                powerToken = token
+            end
             local dbColors = config and config.power_colors
             local color = (dbColors and dbColors[powerToken]) or DF_POWER_COLORS[powerToken] or DF_POWER_COLORS["MANA"]
             statusBar:SetStatusBarColor(color.r or 1, color.g or 1, color.b or 1)
@@ -1156,13 +1196,21 @@ local function UpdateManaBarColor(statusBar)
     statusBar:SetStatusBarColor(1, 1, 1)
 end
 
--- Update power bar texture based on current power type (handles druid forms)
+-- Update power bar texture based on current power type.
+-- Custom server (keepManaInForms): the bar stays MANA even in druid forms because
+-- the classless bars handle RAGE/ENERGY. Default: swaps texture to match the form.
 local function UpdatePowerBarTexture(statusBar)
     if statusBar ~= PlayerFrameManaBar then
         return
     end
 
-    local powerType, powerTypeString = UnitPowerType('player')
+    local powerTypeString
+    if Module.keepManaInForms then
+        powerTypeString = "MANA"
+    else
+        local _, token = UnitPowerType('player')
+        powerTypeString = token or "MANA"
+    end
     local powerTexture = GetPowerBarTexture(powerTypeString)
 
     --  CHANGE TEXTURE based on current power type
@@ -1223,11 +1271,12 @@ local function UpdateAlternateManaText()
         return
     end
     
-    -- Get current mana values
-    local currentMana = UnitPower("player", POWER_TYPE_MANA or 0)
-    local maxMana = UnitPowerMax("player", POWER_TYPE_MANA or 0)
+    -- Read values from the bar itself so we match whatever power type
+    -- the frame is displaying (mana for druids, or custom resources on CoA).
+    local currentValue = alternateManaBar:GetValue()
+    local minValue, maxValue = alternateManaBar:GetMinMaxValues()
     
-    if not currentMana or not maxMana or maxMana == 0 then
+    if not currentValue or not maxValue or maxValue == 0 then
         return
     end
     
@@ -1239,8 +1288,8 @@ local function UpdateAlternateManaText()
     -- Custom handling for alternate mana bar
     if textFormat == "both" then
         -- Custom separation for alternate mana bar - adjust spacing here
-        local currentText = useBreakup and addon.TextSystem.AbbreviateLargeNumbers(currentMana) or tostring(currentMana)
-        local percent = math.floor((currentMana / maxMana) * 100)
+        local currentText = useBreakup and addon.TextSystem.AbbreviateLargeNumbers(currentValue) or tostring(currentValue)
+        local percent = math.floor((currentValue / maxValue) * 100)
         local customSeparator = "    " -- Custom spacing for alternate mana bar (adjust here) 
         local combinedText = percent .. "%" .. customSeparator .. currentText
         
@@ -1255,8 +1304,8 @@ local function UpdateAlternateManaText()
     else
         -- Use normal TextSystem for other formats
         local formattedText = addon.TextSystem.FormatStatusText(
-            currentMana, 
-            maxMana, 
+            currentValue, 
+            maxValue, 
             textFormat, 
             useBreakup, 
             "alternateMana"
@@ -1335,24 +1384,19 @@ end
 
 -- Setup alternate mana bar text system based on configuration
 local function SetupAlternateManaBarAlwaysVisible()
-    local _, playerClass = UnitClass("player")
-    if playerClass ~= "DRUID" then
-        return
-    end
-    
     local alternateManaBar = _G.PlayerFrameAlternateManaBar
     if not alternateManaBar then
         return
     end
     
-    -- ALWAYS hide Blizzard text - we always use DragonUI system for druids
+    -- ALWAYS hide Blizzard text - we always use DragonUI system
     local blizzardText = alternateManaBar.TextString or _G.PlayerFrameAlternateManaBarText
     if blizzardText then
         blizzardText:Hide()
         blizzardText:SetAlpha(0)
     end
     
-    -- ALWAYS setup DragonUI text elements for druids
+    -- ALWAYS setup DragonUI text elements
     SetupAlternateManaTextElements()
     
     -- Get configuration to determine visibility behavior
@@ -2079,31 +2123,29 @@ local function ChangePlayerframe()
 
     -- Position name and level (shifted right in vehicle due to larger portrait)
     -- Ensure name/level are on OVERLAY draw layer so they render above vehicle textures
+    local playerConfig = addon.UF.GetConfig("player")
+    local centerName = playerConfig and playerConfig.centerName
     PlayerName:SetDrawLayer('OVERLAY', 7)
     PlayerName:ClearAllPoints()
     if hasVehicleUI then
-        PlayerName:SetJustifyH("LEFT")
-        PlayerName:SetWidth(90)
+        PlayerName:SetJustifyH("CENTER")
+        PlayerName:SetWidth(110)
         PlayerName:SetPoint('CENTER', PlayerFrame, 'CENTER', 50, 20)
+    elseif centerName then
+        -- Centered above health bar
+        PlayerName:SetJustifyH("CENTER")
+        PlayerName:SetWidth(110)
+        PlayerName:SetPoint('BOTTOM', PlayerFrameHealthBar, 'TOP', 0, 2)
     else
-        local pConfig = GetPlayerConfig()
-        local decorationType = pConfig.dragon_decoration or "none"
-        local isPlayerEliteMode = decorationType == "elite" or decorationType == "rareelite"
-        if isPlayerEliteMode then
-            -- Dragon decoration mode: center the name above the health bar
-            PlayerName:SetJustifyH("CENTER")
-            PlayerName:SetWidth(110)
-            PlayerName:SetPoint('BOTTOM', PlayerFrameHealthBar, 'TOP', 0, 2)
-        else
-            -- Normal mode: left-aligned above health bar
-            PlayerName:SetJustifyH("LEFT")
-            PlayerName:SetWidth(90)
-            PlayerName:SetPoint('BOTTOMLEFT', PlayerFrameHealthBar, 'TOPLEFT', 12, 2)
-        end
+        -- Left-aligned above health bar
+        PlayerName:SetJustifyH("LEFT")
+        PlayerName:SetWidth(110)
+        PlayerName:SetPoint('BOTTOMLEFT', PlayerFrameHealthBar, 'TOPLEFT', 0, 2)
     end
     -- Force name visible — Blizzard vehicle transition can hide it
     PlayerName:SetAlpha(1)
     PlayerName:Show()
+    UpdatePlayerNameColor()
 
     PlayerLevelText:SetDrawLayer('OVERLAY', 7)
     PlayerLevelText:ClearAllPoints()
@@ -2137,10 +2179,10 @@ local function ChangePlayerframe()
     -- Configure mana bar (fat mode uses anchor frame, vehicle/normal use inline position)
     ApplyFatManaBar()
 
-    -- Set power bar texture based on type (respects user texture override)
-    local powerType, powerTypeString = UnitPowerType('player')
-    local powerTexture = GetPowerBarTexture(powerTypeString)
-    PlayerFrameManaBar:GetStatusBarTexture():SetTexture(powerTexture)
+    -- Set power bar texture based on type (respects user texture override).
+    -- Lock-aware helper: on the custom server the bar stays MANA at login/reload
+    -- even in druid forms (classless bars own RAGE/ENERGY).
+    UpdatePowerBarTexture(PlayerFrameManaBar)
 
     -- Configure status and flash textures 
     -- In vehicle: hide our custom glow effects (vehicle frame doesn't use them)
@@ -2490,7 +2532,8 @@ local function ApplyPlayerConfig()
             -- Initialize with dynamic unit based on vehicle state
             local initialUnit = UnitHasVehicleUI("player") and "vehicle" or "player"
             Module.textSystem = addon.TextSystem.SetupFrameTextSystem("player", initialUnit, dragonFrame,
-                PlayerFrameHealthBar, PlayerFrameManaBar, "PlayerFrame")
+                PlayerFrameHealthBar, PlayerFrameManaBar, "PlayerFrame",
+                { powerTypeOverride = Module.keepManaInForms and 0 or nil })
         end
         if Module.textSystem then
             -- Ensure we have the correct unit after setup
@@ -2502,7 +2545,7 @@ local function ApplyPlayerConfig()
     UpdatePlayerDragonDecoration()
     UpdateGlowVisibility()
     
-    -- Setup alternate mana bar text to always be visible for druids
+    -- Setup alternate mana bar text visibility
     SetupAlternateManaBarAlwaysVisible()
 
 end
@@ -2539,6 +2582,9 @@ local function RefreshPlayerFrame()
 
     --  UPDATE CLASS COLOR
     UpdatePlayerHealthBarColor()
+
+    --  UPDATE NAME COLOR
+    UpdatePlayerNameColor()
 
     --  UPDATE DRAGON DECORATION (important for scale)
     UpdatePlayerDragonDecoration()
@@ -2761,22 +2807,15 @@ local function InitializePlayerFrame()
         end)
     end
 
-    -- Blizzard re-Shows this bar on its own (e.g. UnitFrameManaBar_UpdateType), undoing "hide mana bar".
-    if PlayerFrameManaBar then
-        hooksecurefunc(PlayerFrameManaBar, "Show", function(self)
-            if IsFatHealthbarActive() then
-                local _, _, hidden = GetFatManaConfig()
-                if hidden then
-                    self:Hide()
-                end
-            end
-        end)
-    end
-
     -- Protect against Blizzard's UnitFrameManaBar_UpdateType resetting our texture
     if not Module._manaTypeHooked and _G.UnitFrameManaBar_UpdateType then
         hooksecurefunc("UnitFrameManaBar_UpdateType", function(manaBar)
             if manaBar == PlayerFrameManaBar then
+                if Module.keepManaInForms then
+                    -- Force the bar type back to MANA before UnitFrameManaBar_Update reads
+                    -- UnitPowerMax/UnitPower(unit, statusbar.powerType), so values stay mana too.
+                    manaBar.powerType = 0
+                end
                 UpdatePowerBarTexture(PlayerFrameManaBar)
             end
         end)
@@ -3048,6 +3087,8 @@ local function SetupPlayerEvents()
                     PlayerFrameManaBar:GetScript("OnEvent")(PlayerFrameManaBar, "UNIT_MANA", "player")
                     -- FIX: Restore white tint for texture purity
                     UpdateManaBarColor(PlayerFrameManaBar)
+                    -- Re-apply fat mana bar hide state after vehicle exit
+                    ApplyFatManaBar()
                 end
             end
         end
@@ -3084,19 +3125,16 @@ local function SetupPlayerEvents()
         elseif POWER_EVENTS[event] then
             UpdateManaBarColor(PlayerFrameManaBar)
             UpdatePowerBarTexture(PlayerFrameManaBar)
-            -- Update alternate mana text for druids (both always visible and hover modes)
-            local _, playerClass = UnitClass("player")
-            if playerClass == "DRUID" then
-                local config = GetPlayerConfig()
-                if config and config.alwaysShowAlternateManaText then
-                    -- Always visible mode: update immediately
+            -- Update alternate mana text (both always visible and hover modes)
+            local config = GetPlayerConfig()
+            if config and config.alwaysShowAlternateManaText then
+                -- Always visible mode: update immediately
+                UpdateAlternateManaText()
+            else
+                -- Hover mode: only update if currently showing (mouse over)
+                local alternateManaBar = _G.PlayerFrameAlternateManaBar
+                if alternateManaBar and alternateManaBar:IsMouseOver() then
                     UpdateAlternateManaText()
-                else
-                    -- Hover mode: only update if currently showing (mouse over)
-                    local alternateManaBar = _G.PlayerFrameAlternateManaBar
-                    if alternateManaBar and alternateManaBar:IsMouseOver() then
-                        UpdateAlternateManaText()
-                    end
                 end
             end
         end
@@ -3154,6 +3192,7 @@ end
 hooksecurefunc("PlayerFrame_ToPlayerArt", OnBlizzardArtApplied)
 hooksecurefunc("PlayerFrame_ToVehicleArt", OnBlizzardArtApplied)
 
+-- Hook PlayerFrame_SequenceFinished (end of animations)
 if PlayerFrame_SequenceFinished then
     hooksecurefunc("PlayerFrame_SequenceFinished", function()
         ApplyPlayerArtState()

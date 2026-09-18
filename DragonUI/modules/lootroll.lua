@@ -195,6 +195,9 @@ function LootRollModule:Initialize()
             onHide = function()
                 UpdateAnchorPosition()
                 AttachContainer()
+                if addon.ItemLoot and addon.ItemLoot.HideEditorPreview then
+                    addon.ItemLoot.HideEditorPreview()
+                end
             end,
             module = LootRollModule
         })
@@ -259,6 +262,10 @@ function LootRollModule:ShowEditorTest()
 
     if frame.editorText then
         frame.editorText:Show()
+    end
+
+    if addon.ItemLoot and addon.ItemLoot.ShowEditorPreview and (not addon.IsModuleEnabled or addon:IsModuleEnabled("itemloot")) then
+        addon.ItemLoot.ShowEditorPreview()
     end
 
     -- Click to select in editor panel
@@ -355,6 +362,10 @@ function LootRollModule:HideEditorTest()
     end
     if frame.editorText then
         frame.editorText:Hide()
+    end
+
+    if addon.ItemLoot and addon.ItemLoot.HideEditorPreview then
+        addon.ItemLoot.HideEditorPreview()
     end
 end
 

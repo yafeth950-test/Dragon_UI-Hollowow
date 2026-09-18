@@ -80,6 +80,8 @@ L["Profiles"] = true
 L["Unit Frames"] = true
 L["XP & Rep Bars"] = true
 L["Chat"] = true
+L["BNet Toast"] = true
+L["Bags"] = true
 L["Appearance"] = true
 
 -- ============================================================================
@@ -159,6 +161,10 @@ L["Detach weapon enchant icons (poisons, sharpening stones, etc.) from the buff 
 -- Auras tab
 L["Show Toggle Button"] = true
 L["Show a collapse/expand button next to the buff icons."] = true
+L["Vanity Buffs"] = true
+L["Vanity buffs are cosmetic auras consolidated by Ascension (mounts, toys, transmog effects). The consolidated container is provided by the Ascension_VanityCollection addon."] = true
+L["Hide Vanity Buffs"] = true
+L["Hide the Ascension vanity-buff consolidated container and its contained auras from the buff frame. Existing buff order and positioning are preserved."] = true
 L["Weapon Enchants"] = true
 L["Weapon enchant icons include rogue poisons, sharpening stones, wizard oils, and similar temporary weapon enhancements."] = true
 L["Aura Borders"] = true
@@ -220,6 +226,8 @@ L["Enable Target Aura Timers"] = true
 L["Target Aura Timer Size"] = true
 L["Target Aura Minimum Duration (Seconds)"] = true
 L["Target Aura Maximum Duration (Minutes)"] = true
+L["Ignore Keeper's Aura from Target"] = true
+L["Hide all buffs on the target whose name starts with 'Keeper's'."] = true
 L["Focus Aura Timer Settings"] = true
 L["Enable Focus Aura Timers"] = true
 L["Focus Aura Timer Size"] = true
@@ -424,6 +432,11 @@ L["Dark"] = true
 L["DragonUI Style"] = true
 L["Nocturne"] = true
 
+-- Chat Tab - Recommended Addon
+L["Recommended Addon"] = true
+L["For a smoother, more polished chat experience, check out CleanerChat-WotLK — it adds chat filter tweaks, improved chat styling, and Glass UI overlays."] = true
+L["Download (select and Ctrl+C to copy):"] = true
+
 -- Bagster
 L["Enable Bagster"] = true
 L["All-in-one bag replacement with item filtering, search, quality indicators, and bank integration."] = true
@@ -602,12 +615,18 @@ L["Make the right secondary bar horizontal instead of vertical."] = true
 
 -- Button Appearance section
 L["Button Appearance"] = true
-L["Main Bar Only Background"] = true
-L["If checked, only the main action bar buttons will have a background. If unchecked, all action bar buttons will have a background."] = true
-L["Only the main action bar buttons will have a background."] = true
+L["Hide Secondary Bar Background"] = true
+L["Hide the background of secondary bar buttons (stance, pet, totem, etc.)."] = true
+L["Hide Main Bar Button Background"] = true
+L["Hide the background of main action bar buttons."] = true
 L["Hide Main Bar Background"] = true
 L["Hide the background texture of the main action bar (makes it completely transparent)"] = true
 L["Hide the background texture of the main action bar."] = true
+
+-- Behavior section
+L["Behavior"] = true
+L["Disable Form Page Switching"] = true
+L["When enabled, the main action bar stays on the same page regardless of stance/form changes. Useful for druids, warriors, and CoA Classes who prefer manual page management."] = true
 
 -- Text visibility
 L["Text Visibility"] = true
@@ -759,6 +778,7 @@ L["Space between buttons for all additional bars"] = true
 -- Stance Bar
 L["Stance Bar"] = true
 L["Warriors, Druids, Death Knights"] = true
+L["Show Stance Bar"] = true
 L["X Position"] = true
 L["Y Position"] = true
 L["Y Offset"] = true
@@ -766,6 +786,7 @@ L["Horizontal position of stance bar from screen center. Negative values move le
 
 -- Pet Bar
 L["Pet Bar"] = true
+L["Pet Bar Layout"] = true
 L["Hunters, Warlocks, Death Knights - Use editor mode to move"] = true
 L["Show Empty Slots"] = true
 L["Display empty action slots on pet bar"] = true
@@ -781,6 +802,7 @@ L["Use Blizzard vehicle bar art with health/power display. Requires reload."] = 
 -- Totem Bar
 L["Totem Bar"] = true
 L["Totem Bar (Shaman)"] = true
+L["Show Totem Bar"] = true
 L["Shamans only - Totem multicast bar. Position is controlled via Editor Mode."] = true
 L["TIP: Use Editor Mode to position the totem bar (type /dragonui edit)."] = true
 
@@ -810,6 +832,8 @@ L["Height"] = true
 L["Height of the cast bar"] = true
 L["Scale"] = true
 L["Size scale of the cast bar"] = true
+L["Hide Castbar"] = true
+L["Hide Castbar Desc"] = "Hides this castbar completely: both the DragonUI bar and the default Blizzard bar."
 L["Show Icon"] = true
 L["Show the spell icon next to the cast bar"] = true
 L["Show Spell Icon"] = true
@@ -875,6 +899,25 @@ L["Latency Alpha"] = true
 L["Opacity of the latency indicator."] = true
 
 -- ============================================================================
+-- BNET TOAST TAB
+-- ============================================================================
+
+L["Configure how DragonUI notifies you when friends come online or go offline."] = true
+L["Enable BNet Toast"] = true
+L["Display Battle.net friend online/offline notifications via toast popup and/or chat messages."] = true
+L["Notification Type"] = true
+L["Guild Notifications"] = true
+L["Show notifications for guild members coming online or going offline. Turn off to only receive friend notifications."] = true
+L["Show Toast Popup"] = true
+L["Display the Battle.net toast frame when a friend comes online or goes offline."] = true
+L["Show Chat Notification"] = true
+L["Display a chat message when a friend comes online or goes offline."] = true
+L["Position & Scale"] = true
+L["Scale of the BNet toast frame."] = true
+L["Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."] = true
+L["Vertical offset of the BNet toast frame. Negative values move down, positive values move up."] = true
+
+-- ============================================================================
 -- ENHANCEMENTS TAB
 -- ============================================================================
 
@@ -882,6 +925,27 @@ L["Enhancements"] = true
 L["Visual enhancements that add Dragonflight-style polish to the UI. These are optional \226\128\148 disable any you don't want."] = true
 
 -- (Dark Mode, Range Indicator, Item Quality, Tooltips defined above in MODULES section)
+
+-- Low HP Alert
+L["Low HP Alert"] = true
+L["Plays a sound and flashes the screen edges when your HP drops below the configured threshold."] = true
+L["Enable Low HP Alert"] = true
+L["Warning Sound (every 3 sec)"] = true
+L["Plays a warning sound every 3 seconds while HP is below threshold."] = true
+L["Screen Edge Flash"] = true
+L["Flashes red at the edges of the screen while HP is below threshold."] = true
+L["HP Warning Threshold"] = true
+L["Percentage of HP at which the warning triggers."] = true
+L["Test Warning (3 sec)"] = true
+L["Triggers a 3-second preview of the warning state to help you adjust the threshold."] = true
+L["Flash Color"] = true
+L["Color of the screen edge flash effect."] = true
+L["Use Class Color"] = true
+L["Use your class color (e.g. orange for Druid, yellow for Rogue) instead of the custom color."] = true
+L["Flash Opacity"] = true
+L["Maximum opacity of the flash effect."] = true
+L["Flash Extent"] = true
+L["How far the flash extends from the screen edges toward the center, in pixels."] = true
 
 -- ============================================================================
 -- MICRO MENU TAB
@@ -911,6 +975,7 @@ L["Configure the position and scale of the bag bar independently from the micro 
 L["Bag Bar Scale"] = true
 
 -- XP & Rep Bars
+L["XP Bar"] = true
 L["XP & Rep Bars (Legacy Offsets)"] = true
 L["Main XP & Rep bar options have moved to the XP & Rep Bars tab."] = true
 L["These offset options are for advanced positioning adjustments."] = true
@@ -936,6 +1001,8 @@ L["Arrow"] = true
 L["Basic Settings"] = true
 L["Border Alpha"] = true
 L["Top border alpha (0 to hide)."] = true
+L["Square Minimap"] = true
+L["Use a square minimap with a square border instead of the round DragonUI border."] = true
 L["Addon Button Skin"] = true
 L["Apply DragonUI border styling to addon icons (e.g., bag addons)"] = true
 L["Apply DragonUI border styling to addon icons."] = true
@@ -1023,6 +1090,17 @@ L["Scale of the focus of target frame"] = true
 L["Scale of party frames"] = true
 L["Class Color"] = true
 L["Class Color Health"] = true
+L["Class Color Name"] = true
+L["Center Name"] = true
+L["Center the unit name above the health bar."] = true
+L["Show Group Indicator"] = true
+L["Show the raid subgroup indicator (e.g. Group 2) above the player frame."] = true
+L["Show Buffs"] = true
+L["Show buff icons on the target frame."] = true
+L["Show buff icons on the focus frame."] = true
+L["Show Debuffs"] = true
+L["Show debuff icons on the target frame."] = true
+L["Show debuff icons on the focus frame."] = true
 L["Use class color for health bar"] = true
 L["Use class color for health bars in party frames"] = true
 L["Show class icon instead of 3D portrait"] = true
@@ -1149,6 +1227,9 @@ L["Vertical position (only active if Override is checked)"] = true
 
 -- Target of Target
 L["Target of Target"] = true
+-- Player Stats
+L["Player Stats"] = true
+L["Add item level, PvE/PvP power and prestige for player units."] = true
 L["Follows the Target frame by default. Move it in Editor Mode (/dragonui edit) to detach and position freely."] = true
 L["Detached \226\128\148 positioned freely via Editor Mode"] = true
 L["Attached \226\128\148 follows Target frame"] = true
@@ -1236,8 +1317,11 @@ L["Warning: Deleting a profile is permanent and cannot be undone."] = true
 L["Delete"] = true
 L["Deleted profile: "] = true
 L["Are you sure you want to delete the profile '%s'? This cannot be undone."] = true
-L["Reset Current Profile"] = true
-L["Restores the current profile to its defaults. This cannot be undone."] = true
+L["Profile Manager"] = true
+L["Manage your current profile: reset to defaults, export/import as text, or share in-game."] = true
+L["Restores the current profile to defaults."] = true
+L["Export your current profile as a text string."] = true
+
 L["Reset Profile"] = true
 L["All changes will be lost and the UI will be reloaded.\nAre you sure you want to reset your profile?"] = true
 L["Profile reset to defaults."] = true
@@ -1255,19 +1339,15 @@ L["Show the health deficit (missing health) as red text on health bars. Useful f
 L["Builder/Spender Feedback"] = true
 L["Show mana gain/loss glow feedback on player mana bar (experimental)."] = true
 
--- LAYOUT PRESETS
-L["Layout Presets"] = true
-L["Save and restore complete UI layouts. Each preset captures all positions, scales, and settings."] = true
-L["No presets saved yet."] = true
-L["Save New Preset"] = true
-L["Save your current UI layout as a new preset."] = true
+-- Preset (used by minimap tab)
 L["Preset"] = true
-L["Enter a name for this preset:"] = true
 L["Save"] = true
 L["Load"] = true
 L["Load preset '%s'? This will overwrite your current layout settings."] = true
+L["Load position preset '%s'? This will overwrite your current element positions."] = true
 L["Load Preset"] = true
 L["Delete preset '%s'? This cannot be undone."] = true
+L["Delete position preset '%s'? This cannot be undone."] = true
 L["Delete Preset"] = true
 L["Duplicate Preset"] = true
 L["Preset saved: "] = true
@@ -1280,11 +1360,23 @@ L["Presets kept."] = true
 L["Position presets kept."] = true
 
 -- PRESET IMPORT / EXPORT
+L["Position Presets"] = true
+L["Position Preset"] = true
 L["Export Preset"] = true
 L["Import Preset"] = true
 L["Import a preset from a text string shared by another player."] = true
+L["Export Position Preset"] = true
+L["Import Position Preset"] = true
+L["No position presets saved yet. Save one in Edit Mode (/dragonui edit) first."] = true
+L["Position presets not available."] = true
+L["Failed to export position preset."] = true
+L["Invalid position preset string."] = true
+L["Not a valid DragonUI position preset string."] = true
 L["Import"] = true
 L["Select All"] = true
+L["Close"] = true
+
+-- Fade / hover settings (actionbars, micromenu, bags)
 L["Hover Fade"] = true
 L["Visible Alpha"] = true
 L["Opacity when a bar is considered visible by hover/combat rules."] = true
@@ -1296,6 +1388,33 @@ L["Fade Out Duration"] = true
 L["Seconds used to fade bars out when they become hidden."] = true
 L["Fade Out Delay"] = true
 L["Delay before hover-out starts fading, useful to avoid flicker between buttons."] = true
+
+-- PROFILE IMPORT/EXPORT
+L["Import Profile"] = true
+L["Import"] = true
+L["Export Profile"] = true
+L["Exporting..."] = true
+L["Enter profile name"] = true
+L["Sending..."] = true
+L["Failed to export profile."] = true
+L["Import a profile from a text string shared by another user."] = true
+L["Invalid profile string."] = true
+L["Not a valid DragonUI profile string."] = true
+L["Profile imported: "] = true
+L["Enter a name for the imported profile:"] = true
+L["Imported Profile"] = true
+
+-- Profile sharing
+L["Share to:"] = true
+L["Whisper"] = true
+L["Party"] = true
+L["Raid"] = true
+L["Guild"] = true
+L["Share"] = true
+L["Enter a target player name for whisper."] = true
+L["Profile shared with"] = true
+
+L["This Fork is maintained by PentSec for AscensionWow, based on the original work by Neticsoul."] = true
 L["Close"] = true
 L["Enter a name for the imported preset:"] = true
 L["Imported Preset"] = true
@@ -1609,6 +1728,14 @@ L["Dragon"] = true
 L["Star"] = true
 L["Show Combo Points"] = true
 L["Show combo points on the current target nameplate."] = true
+L["Combo Points"] = true
+L["Anchor Position"] = true
+L["Choose where the combo widget is anchored on the target nameplate health bar."] = true
+L["Scale of the combo widget (0.5 - 2.0)."] = true
+L["Horizontal offset from the chosen anchor point. Negative moves left, positive moves right."] = true
+L["Vertical offset from the chosen anchor point. Negative moves down, positive moves up."] = true
+L["Combos Per Row"] = true
+L["Maximum combo segments per row on custom-class resources (Reaper, Demonhunter, Ranger, ...). Rogue and Druid use a single combined icon and are not affected. Wrap to a second row when exceeded."] = true
 L["Quest Icons"] = true
 L["Show Quest Icons"] = true
 L["Show kill/loot icons over your quest-objective mobs. Without awesome_wotlk, only your target, mouseover and focus show them."] = true
@@ -1753,12 +1880,50 @@ L["Only apply Retail-like stacking inside party and raid instances. It remains d
 L["Scales the nameplate clickbox relative to its original size. Changes made during combat are applied when combat ends."] = true
 L["Show icons for recognized shaman totems. DragonUI uses localized spell names and automatically learns your own active totems."] = true
 
+-- Version Check
+L["Version Check"] = true
+L["Broadcast and detect addon version updates across group members."] = true
+
 -- Search
 
 L["Search settings..."] = true
 L["Type to find a setting"] = true
 L["No settings match '%s'."] = true
 L["Showing top %d results. Type at least 3 characters for the full list."] = true
+
+-- Transmog Collector
+L["Transmog Collector"] = true
+L["Enable Transmog Collector"] = true
+L["Automatically collect transmog appearances when looting new items. Works with Ascension's Ctrl+Alt+Click appearance system."] = true
+L["On loot, auto-collects appearances for items you haven't learned yet."] = true
+
+-- Attack Bar Tab
+L["Attack Bar"] = true
+L["Shows swing timers for your main hand, off hand, ranged attacks, and enemy target melee swings."] = true
+L["Enable Attack Bar"] = true
+L["Show swing timer bars for melee and ranged attacks."] = true
+L["Main Hand Bar"] = true
+L["Show the main hand melee swing timer."] = true
+L["Off Hand Bar"] = true
+L["Show the off hand melee swing timer (dual-wield)."] = true
+L["Ranged Bar"] = true
+L["Show the ranged attack timer (Hunter shots, Throw, Aimed Shot)."] = true
+L["Enemy Bar"] = true
+L["Show the enemy target melee swing timer."] = true
+L["Show Timer"] = true
+L["Show the countdown timer text on bars."] = true
+L["Show Info"] = true
+L["Show spell name, damage range, and time remaining text."] = true
+L["Scale"] = true
+L["Border Style"] = true
+L["Choose the border style for the swing timer bars."] = true
+L["Standard"] = true
+L["Thin"] = true
+L["Scale of the swing timer bars."] = true
+
+-- Attack Bar Module Registration (from module file)
+L["Swing Timer Module"] = true
+L["Shows main hand, off hand, ranged, and enemy target swing timers."] = true
 L["An ally carries dozens of auras, so you pick below what earns a slot."] = true
 L["Debuffs on the Ally"] = true
 L["Buffs the Ally Carries"] = true
@@ -1792,6 +1957,19 @@ L["Hide the rotate, zoom and reset buttons over the character model."] = true
 L["Keep the Reset Button"] = true
 L["Leave the reset button on its own while the rest of the model controls stay hidden."] = true
 
+-- ============================================================================
+-- DAMAGE METER SKIN (DETAILS!)
+-- ============================================================================
+
+L["Damage Meter Skin"] = true
+L["|cffff5555Details! is not installed.|r This module skins the Details! Damage Meter, it is not a meter of its own - with Details! absent there is nothing to skin."] = true
+L["A retail-styled theme for |cffffcc55Details!|r, drawn with art from retail's own damage meter: a gold-titled header bar, class-coloured bars on a near-invisible panel, and abbreviated numbers. It is registered with Details! at login, so it also appears in Details!' own skin list under |cffffcc55DragonUI|r."] = true
+L["Enable Damage Meter Skin"] = true
+L["Registers the DragonUI theme with Details! and puts your chosen skin back after a reload. Turning it off hands every window back to Details!' own chrome."] = true
+L["Apply the DragonUI Skin"] = true
+L["Switches every Details! window to the skin and sets K/M number abbreviation. Window size and position stay yours - use Details!' own scale slider for those. Your choice is remembered and put back after a reload; picking another skin in Details! ends that. Run this again after you customise something in Details! and want the theme back."] = true
+L["Run |cffffcc55/duidetails|r to apply it from chat."] = true
+
 -- World Map
 L["World Map"] = true
 L["Retail-style world map with breadcrumb navigation and a quest log side panel."] = true
@@ -1807,3 +1985,15 @@ L["Show Graveyards"] = true
 L["Show graveyard pins on zone maps."] = true
 L["Show Flight Points"] = true
 L["Show flight master pins on zone maps."] = true
+
+-- Iconic
+L["Iconic"] = true
+L["Item icons in chat, merchant improvements, and enhanced item tooltips."] = true
+
+-- Item Loot (Loot Toast)
+L["Loot Toast"] = true
+L["Pretty loot toast alert notifications with custom textures."] = true
+
+-- About Authors
+L["Worked on by MiiKiis for the WoW Hollow server."] = true
+L["Original work by Neticsoul, with contributions by PentSec and the community."] = true

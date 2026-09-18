@@ -1,7 +1,6 @@
 local addon = select(2,...);
 local config = addon.config;
 local event = addon.package;
-local class = addon._class;
 local unpack = unpack;
 local select = select;
 local pairs = pairs;
@@ -40,10 +39,12 @@ end
 -- Nil-safe accessor for stance-specific config (addon.db.profile.additional.stance)
 -- IMPORTANT: Keep in sync with database.lua → additional.stance
 local STANCE_DEFAULTS = {
+    show = true,
     x_position = -211,
     y_offset = -58,
     button_size = 31,
     button_spacing = 6,
+    show_hotkey = false,
 }
 local function GetStanceConfig()
     if addon.db and addon.db.profile and addon.db.profile.additional and addon.db.profile.additional.stance then
@@ -96,11 +97,11 @@ local function stancebar_update()
     
     -- READ VALUES FROM DATABASE
     local stanceConfig = GetStanceConfig()
-    local x_position = stanceConfig.x_position or -230  -- X position from center
-    local y_offset = stanceConfig.y_offset or 0         -- Additional Y offset
+    local x_position = stanceConfig.x_position or -211  -- X position from center
+    local y_offset = stanceConfig.y_offset or -58        -- Additional Y offset
     local base_y = 200                                  -- Base Y position from bottom
     local final_y = base_y + y_offset                   -- Final Y position
-    
+
     -- Apply dual-bar offset when both XP and Rep bars are visible
     -- Only if stance bar is at its default position (not moved by user)
     -- IMPORTANT: Keep in sync with database.lua → additional.stance
@@ -145,6 +146,7 @@ local function CreateStanceFrames()
     -- Create simple anchor frame
     anchor = CreateFrame('Frame', 'pUiStanceHolder', UIParent)
     anchor:SetSize(37, 37)  -- Visual style matching reference
+
     StanceModule.frames.anchor = anchor
     
     -- Create stance bar frame
@@ -217,14 +219,16 @@ local function CreateStanceFrames()
         end
         
         -- Store mouse position when drag starts
-        local scale = self:GetEffectiveScale()
-        dragStartX = GetCursorPosition() / scale
-        dragStartY = select(2, GetCursorPosition()) / scale
+        -- Use UIParent scale (not self:GetEffectiveScale()) because SetPoint
+        -- coordinates are in the parent's coordinate space.
+        local parentScale = UIParent:GetScale()
+        dragStartX = GetCursorPosition() / parentScale
+        dragStartY = select(2, GetCursorPosition()) / parentScale
         
         -- Store current config values
         if addon.db and addon.db.profile and addon.db.profile.additional and addon.db.profile.additional.stance then
-            configStartX = addon.db.profile.additional.stance.x_position or -230
-            configStartY = addon.db.profile.additional.stance.y_offset or 0
+            configStartX = addon.db.profile.additional.stance.x_position or -211
+            configStartY = addon.db.profile.additional.stance.y_offset or -58
         end
     end)
     
@@ -242,9 +246,11 @@ local function CreateStanceFrames()
         end
         
         -- Calculate current delta from mouse movement
-        local scale = self:GetEffectiveScale()
-        local currentX = GetCursorPosition() / scale
-        local currentY = select(2, GetCursorPosition()) / scale
+        -- Use UIParent scale (not self:GetEffectiveScale()) because SetPoint
+        -- coordinates are in the parent's coordinate space.
+        local parentScale = UIParent:GetScale()
+        local currentX = GetCursorPosition() / parentScale
+        local currentY = select(2, GetCursorPosition()) / parentScale
         
         local deltaX = currentX - dragStartX
         local deltaY = currentY - dragStartY
@@ -354,10 +360,28 @@ local function stancebutton_position()
 		end
 	end
 	
-	-- Register state driver only once
+	-- Register state driver only once — always allow visibility (with vehicleui guard)
+	-- Per-button show/hide handles form availability dynamically via GetShapeshiftFormInfo
+	-- This replaces the old class-dependent approach that broke on CoA 21-classes servers
+	-- (where custom class tokens aren't in the stance table)
 	if not StanceModule.stateDrivers.visibility then
-	    StanceModule.stateDrivers.visibility = {frame = stancebar, state = 'visibility', condition = stance[class] or 'hide'}
-	    RegisterStateDriver(stancebar, 'visibility', stance[class] or 'hide')
+	    local visCondition = '[vehicleui] hide; show'
+	    StanceModule.stateDrivers.visibility = {frame = stancebar, state = 'visibility', condition = visCondition}
+	    RegisterStateDriver(stancebar, 'visibility', visCondition)
+	end
+
+	-- Visibility logic: user toggle takes priority, then auto-show based on forms
+	-- This handles CoA 21-classes where custom classes may have stances
+	-- but their class token isn't in the original stance table
+	if stanceConfig.show == false then
+		anchor:Hide()
+	else
+		local numForms = GetNumShapeshiftForms()
+		if numForms == 0 then
+			anchor:Hide()
+		else
+			anchor:Show()
+		end
 	end
 
 	-- Hover/combat fade layered on top of the state driver above (alpha-only, never Show/Hide).
@@ -569,10 +593,6 @@ local function ApplyStanceSystem()
             end,
             
             hideTest = function()
-                -- Ensure manual editor adjustments are persisted before hiding.
-                if editorOverlay and editorOverlay.SyncManualOverlayDeltaToStanceConfig then
-                    editorOverlay:SyncManualOverlayDeltaToStanceConfig()
-                end
                 editorOverlay:Hide()
                 -- Hide nineslice overlay
                 if addon.HideNineslice then
@@ -584,9 +604,10 @@ local function ApplyStanceSystem()
             end,
 
             onHide = function()
-                if editorOverlay and editorOverlay.SyncManualOverlayDeltaToStanceConfig then
-                    editorOverlay:SyncManualOverlayDeltaToStanceConfig()
-                end
+                -- Apply saved DB position to the real anchor (guide pattern).
+                -- The custom drag handler already wrote x_position/y_offset
+                -- during drag. Just re-apply them — no delta calculation needed.
+                stancebar_update()
                 if editorOverlay then
                     editorOverlay.DragonUI_WasAdjustedByEditor = nil
                     editorOverlay.DragonUI_WasDragged = nil
@@ -711,9 +732,23 @@ function addon.RefreshStance()
 	-- Update position
 	stancebar_update()
 
+	-- Visibility logic: user toggle takes priority, then auto-show based on forms
+	-- Handles CoA 21-classes where custom class tokens aren't in the stance table
+	if anchor then
+		if stanceConfig.show == false then
+			anchor:Hide()
+		else
+			local numForms = GetNumShapeshiftForms()
+			if numForms == 0 then
+				anchor:Hide()
+			else
+				anchor:Show()
+			end
+		end
 	if addon.VisibilityFade then
 		addon.VisibilityFade.Update("stancebar")
 	end
+end
 end
 
 -- ============================================================================

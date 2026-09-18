@@ -410,6 +410,7 @@ local function SetupDatabase()
     -- Option defaults live in database.lua (modules.bagster); only the frame layout db is lazy
     local mc = addon.db.profile.modules.bagster
     if not mc.db then mc.db = {} end
+    if mc.money_display == nil then mc.money_display = "icons" end
 
     DB = mc.db
     mod.DB = DB

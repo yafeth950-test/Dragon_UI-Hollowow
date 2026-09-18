@@ -433,7 +433,10 @@ local function EngineOnUpdate(_, elapsed)
     if UnitExists("target") and NP.module.comboTargetPlate then
         local host = NP.module.comboTargetPlate._comboHost
         local points = NP.widgets.GetPlayerComboPoints()
-        if points > 0 and points <= 5 and host and host.IsShown and not host:IsShown() then
+        -- maxStacks is provider-dependent (native=5; custom classes may stack to 6+).
+        -- We only need to know "non-zero & capped at a sane upper bound" here so the
+        -- re-show guard fires for Ascension class stacks as well as native combo points.
+        if points > 0 and points <= 20 and host and host.IsShown and not host:IsShown() then
             NP.widgets.SyncComboPoints(NP.module.comboTargetPlate)
         end
     end
@@ -718,6 +721,14 @@ local function EngineOnEvent(_, event, unit, ...)
     if not unit then return end
 
     if event == "UNIT_AURA" then
+        if unit == "player"
+            and NP.widgets.HasCustomClassCombo
+            and NP.widgets.HasCustomClassCombo() then
+            -- Ascension custom-class stack resources (Fellfury, souls, embers,
+            -- ...) live as player auras; refresh the combo strip in live time.
+            -- Native combo points keep using UNIT_COMBO_POINTS instead.
+            E.QueueMass(CB.OnUpdateCombo)
+        end
         if unit == "target" or unit == "mouseover" or unit == "focus" then
             local refreshedGUID = NP.auras.DebuffRuntime.UpdateAuraCacheFromUnit(unit)
             local owner

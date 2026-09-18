@@ -100,14 +100,17 @@ local function GetAuraCountsAndSizes(frame)
     local largeDebuffList = {}
 
     -- Large from caster (Blizzard's PLAYER_UNITS rule), not width: prior SetSize corrupts width inference.
+    -- Skip hidden buttons (e.g. Keeper's aura filtered) instead of breaking so later visible auras are still counted.
     for i = 1, MAX_TARGET_BUFFS do
         local buff = _G[selfName .. "Buff" .. i]
-        if not buff or not buff:IsShown() then
+        if not buff then
             break
         end
-        numBuffs = i
-        local caster = select(8, UnitBuff(unit, i))
-        largeBuffList[i] = caster and PLAYER_CAST_UNITS[caster] or false
+        if buff:IsShown() then
+            numBuffs = i
+            local caster = select(8, UnitBuff(unit, i))
+            largeBuffList[i] = caster and PLAYER_CAST_UNITS[caster] or false
+        end
     end
 
     for i = 1, MAX_TARGET_DEBUFFS do
@@ -129,37 +132,45 @@ local function UpdateAuraPositionsDetached(self, auraName, numAuras, numOpposite
     extraGap = extraGap or 0
     local offsetY = AURA_OFFSET_Y + extraGap
     local rowWidth = 0
-    local firstAuraOnRow = 1
+    local firstAuraOnRow = 0
+    local lastVisibleIndex = 0
 
     for i = 1, numAuras do
-        if largeAuraList[i] then
-            size = largeSize
-            offsetY = AURA_OFFSET_Y + AURA_OFFSET_Y + extraGap
+        local aura = _G[auraName .. i]
+        if not aura or not aura:IsShown() then
+            -- Skip hidden auras (e.g. filtered by Keepers option)
         else
-            size = smallSize
-        end
+            if largeAuraList[i] then
+                size = largeSize
+                offsetY = AURA_OFFSET_Y + AURA_OFFSET_Y + extraGap
+            else
+                size = smallSize
+            end
 
-        if i == 1 then
-            rowWidth = size
-            self.auraRows = self.auraRows + 1
-        else
-            rowWidth = rowWidth + size + offsetX
-        end
+            if firstAuraOnRow == 0 then
+                rowWidth = size
+                self.auraRows = self.auraRows + 1
+                firstAuraOnRow = i
+            else
+                rowWidth = rowWidth + size + offsetX
+            end
 
-        if rowWidth > maxRowWidth then
-            updateFunc(self, auraName, i, numOppositeAuras, firstAuraOnRow, size, offsetX, offsetY, mirrorAurasVertically)
-            rowWidth = size
-            self.auraRows = self.auraRows + 1
-            firstAuraOnRow = i
-            offsetY = AURA_OFFSET_Y + extraGap
-        else
-            updateFunc(self, auraName, i, numOppositeAuras, i - 1, size, offsetX, offsetY, mirrorAurasVertically)
+            if rowWidth > maxRowWidth then
+                updateFunc(self, auraName, i, numOppositeAuras, firstAuraOnRow, size, offsetX, offsetY, mirrorAurasVertically, true)
+                rowWidth = size
+                self.auraRows = self.auraRows + 1
+                firstAuraOnRow = i
+                offsetY = AURA_OFFSET_Y + extraGap
+            else
+                updateFunc(self, auraName, i, numOppositeAuras, lastVisibleIndex, size, offsetX, offsetY, mirrorAurasVertically, false)
+            end
+            lastVisibleIndex = i
         end
     end
 end
 
 local function UpdateBuffAnchorDetached(self, buffName, index, numDebuffs, anchorIndex, size, offsetX, offsetY,
-                                        mirrorVertically)
+                                        mirrorVertically, isNewRow)
     local point, relativePoint
     local startY, auraOffsetY
 
@@ -190,7 +201,7 @@ local function UpdateBuffAnchorDetached(self, buffName, index, numDebuffs, ancho
         self.buffs:SetPoint(point .. "LEFT", buff, point .. "LEFT", 0, 0)
         self.buffs:SetPoint(relativePoint .. "LEFT", buff, relativePoint .. "LEFT", 0, -auraOffsetY)
         self.spellbarAnchor = buff
-    elseif anchorIndex ~= (index - 1) then
+    elseif isNewRow then
         buff:SetPoint(point .. "LEFT", _G[buffName .. anchorIndex], relativePoint .. "LEFT", 0, -offsetY)
         self.buffs:SetPoint(relativePoint .. "LEFT", buff, relativePoint .. "LEFT", 0, -auraOffsetY)
         self.spellbarAnchor = buff
@@ -203,7 +214,7 @@ local function UpdateBuffAnchorDetached(self, buffName, index, numDebuffs, ancho
 end
 
 local function UpdateDebuffAnchorDetached(self, debuffName, index, numBuffs, anchorIndex, size, offsetX, offsetY,
-                                          mirrorVertically)
+                                          mirrorVertically, isNewRow)
     local debuff = _G[debuffName .. index]
     local isFriend = UnitIsFriend("player", self.unit)
     local point, relativePoint
@@ -237,14 +248,14 @@ local function UpdateDebuffAnchorDetached(self, debuffName, index, numBuffs, anc
         if isFriend or (not isFriend and numBuffs == 0) then
             self.spellbarAnchor = debuff
         end
-    elseif anchorIndex ~= (index - 1) then
+    elseif isNewRow then
         debuff:SetPoint(point .. "LEFT", _G[debuffName .. anchorIndex], relativePoint .. "LEFT", 0, -offsetY)
         self.debuffs:SetPoint(relativePoint .. "LEFT", debuff, relativePoint .. "LEFT", 0, -auraOffsetY)
         if isFriend or (not isFriend and numBuffs == 0) then
             self.spellbarAnchor = debuff
         end
     else
-        debuff:SetPoint(point .. "LEFT", _G[debuffName .. (index - 1)], point .. "RIGHT", offsetX, 0)
+        debuff:SetPoint(point .. "LEFT", _G[debuffName .. anchorIndex], point .. "RIGHT", offsetX, 0)
     end
 
     debuff:SetWidth(size)
@@ -253,6 +264,78 @@ local function UpdateDebuffAnchorDetached(self, debuffName, index, numBuffs, anc
     if border then
         border:SetWidth(size + 2)
         border:SetHeight(size + 2)
+    end
+end
+
+-- Hide target buffs whose name starts with "Keeper's" when the option is enabled.
+-- After hiding, re-anchors the remaining visible buffs so they reflow into the gap left by
+-- the hidden one (Blizzard anchors them sequentially to the previous slot, so hiding an
+-- inner slot leaves a gap). Only re-anchors; does not touch SetWidth/Height or overall layout.
+local function FilterKeepersAuras(frame)
+    if not frame or not frame.unit or not UnitExists(frame.unit) then
+        return
+    end
+    if frame:GetName() ~= "TargetFrame" then
+        return
+    end
+    local cfg = addon.db and addon.db.profile and addon.db.profile.modules
+        and addon.db.profile.modules.auracooldowns
+    if not cfg or not cfg.target or cfg.target.ignore_keepers_aura ~= true then
+        return
+    end
+    local unit = frame.unit
+    local selfName = frame:GetName()
+
+    -- Track which slots Blizzard left shown and hide the Keeper's ones.
+    local hasHidden = false
+    for i = 1, MAX_TARGET_BUFFS do
+        local buff = _G[selfName .. "Buff" .. i]
+        if not buff then break end
+        if buff:IsShown() then
+            local name = UnitBuff(unit, i)
+            if name and strsub(name, 1, 8) == "Keeper's" then
+                buff:Hide()
+                hasHidden = true
+            end
+        end
+    end
+    if not hasHidden then
+        return
+    end
+
+    -- If a custom/detached layout is active, it already reflows via its own hook; skip here.
+    local detached = ShouldUseDetachedAuraLayout(frame)
+    local buffSize, debuffSize = GetCustomAuraSizes()
+    if detached or buffSize then
+        return
+    end
+
+    -- Re-anchor visible buffs so they slide into the gap left by hidden Keeper's auras.
+    -- Only same-row continuations (TOPLEFT relative to the previous slot's TOPRIGHT,
+    -- sharing that slot's top edge) are moved; new rows keep Blizzard's anchoring so
+    -- multi-row layouts stay intact. Each moved buff chains to the last visible buff
+    -- (never the hidden slot), and a leading gap snaps to the buffs container start.
+    local lastVisible = nil
+    for i = 1, MAX_TARGET_BUFFS do
+        local buff = _G[selfName .. "Buff" .. i]
+        if not buff then break end
+        if buff:IsShown() then
+            local prevSlot = _G[selfName .. "Buff" .. (i - 1)]
+            if prevSlot and not prevSlot:IsShown() then
+                local point, relTo, relPoint = buff:GetPoint(1)
+                local sameRow = point == "TOPLEFT" and relTo == prevSlot and relPoint == "TOPRIGHT"
+                    and (not lastVisible or math.abs(buff:GetTop() - lastVisible:GetTop()) < 2)
+                if sameRow then
+                    buff:ClearAllPoints()
+                    if lastVisible then
+                        buff:SetPoint("TOPLEFT", lastVisible, "TOPRIGHT", 0, 0)
+                    else
+                        buff:SetPoint("TOPLEFT", self.buffs, "TOPLEFT", 0, 0)
+                    end
+                end
+            end
+            lastVisible = buff
+        end
     end
 end
 
@@ -326,9 +409,46 @@ local function InstallDetachedAuraLayoutHook()
         return
     end
 
+    -- Filter first so hidden auras don't participate in layout.
+    hooksecurefunc("TargetFrame_UpdateAuras", FilterKeepersAuras)
     hooksecurefunc("TargetFrame_UpdateAuras", ApplyDragonAuraLayout)
 
     _G.DragonUI_DetachedAuraLayoutHooked = true
+end
+
+-- Hide/show buff and debuff icons based on per-frame config.
+local function ApplyAuraVisibility(frame)
+    if not frame or not frame.GetName then return end
+    local name = frame:GetName()
+    local unitToken = frame.unit
+    if not unitToken then return end
+
+    -- Determine which config section to read
+    local configKey = (unitToken == "focus") and "focus" or "target"
+    local config = addon.db and addon.db.profile
+        and addon.db.profile.unitframe
+        and addon.db.profile.unitframe[configKey]
+    if not config then return end
+
+    if config.show_buffs == false then
+        for i = 1, MAX_TARGET_BUFFS do
+            local buff = _G[name .. "Buff" .. i]
+            if buff then buff:Hide() end
+        end
+    end
+    if config.show_debuffs == false then
+        for i = 1, MAX_TARGET_DEBUFFS do
+            local debuff = _G[name .. "Debuff" .. i]
+            if debuff then debuff:Hide() end
+        end
+    end
+end
+
+local function InstallAuraVisibilityHook()
+    if _G.DragonUI_AuraVisibilityHooked then return end
+    if type(_G.TargetFrame_UpdateAuras) ~= "function" then return end
+    hooksecurefunc("TargetFrame_UpdateAuras", ApplyAuraVisibility)
+    _G.DragonUI_AuraVisibilityHooked = true
 end
 
 -- ============================================================================
@@ -366,6 +486,7 @@ local api = UF.TargetStyle.Create({
     },
 
     -- Feature flags
+    keepManaInForms         = true,   -- Custom server: mana bar stays MANA (classless bars own RAGE/ENERGY)
     forceLayoutOnUnitChange = true,   -- ReapplyElementPositions on every change
     hasTapDenied            = true,   -- Grey name bg for tapped-by-other targets
 
@@ -418,6 +539,24 @@ local api = UF.TargetStyle.Create({
             ctx.Module.threatHooked = true
         end
 
+        -- Nullify the vanilla combat hit-flash on TargetFrameFlash. hideListFn
+        -- hides it once at init, but Blizzard/custom-server re-Shows it with the
+        -- vanilla red-lines atlas (desynced on this server). DragonUI repurposes
+        -- the same texture for threat, so allow Show only while the DragonUI
+        -- THREAT skin is applied; otherwise keep it invisible (SetAlpha is a
+        -- visual-only op, always safe even during combat lockdown).
+        if not ctx.Module.flashNullified then
+            local threatFlash = _G.TargetFrameFlash
+            if threatFlash then
+                hooksecurefunc(threatFlash, "Show", function()
+                    if threatFlash:GetTexture() ~= ctx.TEXTURES.THREAT then
+                        threatFlash:SetAlpha(0)
+                    end
+                end)
+                ctx.Module.flashNullified = true
+            end
+        end
+
         -- Classification delay frame + hooks
         if not ctx.Module.classificationHooked then
             local delayFrame = CreateFrame("Frame")
@@ -455,6 +594,7 @@ local api = UF.TargetStyle.Create({
         end
 
         InstallDetachedAuraLayoutHook()
+        InstallAuraVisibilityHook()
      end,
 
     -- ----------------------------------------------------------------

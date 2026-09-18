@@ -176,6 +176,10 @@ local function UpdateCharacterSlot(button)
     local hasItem = GetInventoryItemTexture("player", slotID)
     if hasItem then
         local quality = GetInventoryItemQuality("player", slotID)
+        if not quality then
+            local link = GetInventoryItemLink("player", slotID)
+            quality = GetQualityFromLink(link)
+        end
         SetOverlayQuality(button, quality)
     else
         SetOverlayQuality(button, nil)
@@ -555,6 +559,21 @@ local function ApplyItemQualitySystem()
     -- Guild Bank: hook is installed dynamically on GUILDBANKFRAME_OPENED
     -- because Blizzard_GuildBankUI is load-on-demand (not available at startup)
 
+    -- Combuctor: hook ItemSlot.Update to apply quality overlays
+    -- Uses the item link color as fallback so quality is always reliable,
+    -- regardless of server cache state.
+    if not ItemQualityModule.hooks["CombuctorSlot"] and addon.CombuctorItemSlot and addon.CombuctorItemSlot.Update then
+        local origUpdate = addon.CombuctorItemSlot.Update
+        addon.CombuctorItemSlot.Update = function(self, ...)
+            origUpdate(self, ...)
+            if not IsModuleEnabled() then return end
+            local link = self:GetItem()
+            local quality = GetQualityFromLink(link)
+            SetOverlayQuality(self, quality)
+        end
+        ItemQualityModule.hooks["CombuctorSlot"] = true
+    end
+
     -- Initial update
     addon:After(0.5, UpdateAllQualityBorders)
 
@@ -630,13 +649,15 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
     elseif event == "PLAYER_ENTERING_WORLD" then
         if not IsModuleEnabled() then return end
-        addon:After(1.0, function()
-            ApplyItemQualitySystem()
-        end)
+        ApplyItemQualitySystem()
 
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
         if not IsModuleEnabled() then return end
-        addon:After(0.2, UpdateAllCharacterSlots)
+        -- Call immediately AND schedule retries to handle servers that send
+        -- equipment data asynchronously after the event fires.
+        UpdateAllCharacterSlots()
+        addon:After(0.5, UpdateAllCharacterSlots)
+        addon:After(1.5, UpdateAllCharacterSlots)
 
     elseif event == "BAG_UPDATE" then
         if not IsModuleEnabled() then return end
@@ -696,3 +717,5 @@ end)
 addon.ApplyItemQualitySystem = ApplyItemQualitySystem
 addon.RestoreItemQualitySystem = RestoreItemQualitySystem
 addon.UpdateAllQualityBorders = UpdateAllQualityBorders
+
+

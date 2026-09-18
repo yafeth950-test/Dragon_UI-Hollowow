@@ -1,8 +1,8 @@
 ## Interface: 30300
 ## Title: |cff1784d1DragonUI|r |cffffffffOptions|r
-## Notes: |cffcaf7faConfiguration UI for DragonUI|r
-## Author: NeticSoul
-## Version: 2.5
+## Notes: Configuration UI for DragonUI
+## Author: Neticsoul, PentSec, MiiKiis (WoW Hollow)
+## Version: 3.2
 ## LoadOnDemand: 1
 ## Dependencies: DragonUI
 ## X-License: MIT for project-authored code; bundled dependencies retain their own licenses
@@ -38,6 +38,10 @@ panel\tab_enhancements.lua
 panel\tab_panels.lua
 panel\tab_auras.lua
 panel\tab_bags.lua
+panel\tab_bnettoast.lua
+panel\tab_detailsskin.lua
+panel\tab_worldmap.lua
 panel\tab_chat.lua
 panel\tab_profiles.lua
+panel\tab_attackbar.lua
 panel\search.lua

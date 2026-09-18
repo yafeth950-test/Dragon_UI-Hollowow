@@ -1362,6 +1362,10 @@ end
 -- ============================================================================
 
 local function SortPlayerBags()
+    if UnitAffectingCombat("player") then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00cc66DragonUI:|r " .. T("Cannot sort bags while in combat.", "Cannot sort bags while in combat."), 1, 0.4, 0.4)
+        return
+    end
     if running then
         DEFAULT_CHAT_FRAME:AddMessage("|cff00cc66DragonUI:|r " .. T("Sort already in progress.", "Sort already in progress."), 1, 0.8, 0)
         return
@@ -1377,6 +1381,10 @@ local function SortPlayerBags()
 end
 
 local function SortBankBags()
+    if UnitAffectingCombat("player") then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00cc66DragonUI:|r " .. T("Cannot sort bags while in combat.", "Cannot sort bags while in combat."), 1, 0.4, 0.4)
+        return
+    end
     if running then
         DEFAULT_CHAT_FRAME:AddMessage("|cff00cc66DragonUI:|r " .. T("Sort already in progress.", "Sort already in progress."), 1, 0.8, 0)
         return
@@ -1651,6 +1659,8 @@ local function SellScrapItems()
         for slot = 1, GetContainerNumSlots(bag) do
             local itemID = GetContainerItemID(bag, slot)
             if itemID then
+                -- GetItemInfo with itemID is reliable — always returns data once cached,
+                -- unlike GetContainerItemInfo's itemLink which can be nil on uncached items.
                 local _, _, quality, _, iType, _, _, _, _, _, sellPrice = GetItemInfo(itemID)
                 if quality == 0 and iType and iType ~= "Quest" and sellPrice and sellPrice > 0 then
                     local stackCount = select(2, GetContainerItemInfo(bag, slot)) or 1
@@ -1689,24 +1699,70 @@ local function CreateSellScrapButton(name, parent, scale)
 end
 
 -- ============================================================================
+-- TRANSMOG COLLECT
+-- ============================================================================
+
+local function CollectAllTransmogAppearances()
+    if not C_AppearanceCollection or type(C_AppearanceCollection.CollectItemAppearance) ~= "function" then
+        addon:Print(L["Transmog collection API is not available yet. Please try again in a few seconds."])
+        return
+    end
+
+    for bag = 0, NUM_BAG_SLOTS or 4 do
+        local numSlots = GetContainerNumSlots(bag)
+        if numSlots then
+            for slot = 1, numSlots do
+                local itemID = GetContainerItemID(bag, slot)
+                if itemID then
+                    local _, _, classID = GetItemInfo(itemID)
+                    if not classID or classID < 5 then
+                        local guid = GetContainerItemGUID(bag, slot)
+                        if guid then
+                            C_AppearanceCollection.CollectItemAppearance(guid)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function CreateTransmogCollectButton(name, parent, scale)
+    local function BuildTooltipLines()
+        return {
+            T("Click to collect all uncollected transmog appearances from your bags.", "Click to collect all uncollected transmog appearances from your bags."),
+        }
+    end
+
+    return CreateActionButton(
+        name,
+        parent,
+        CollectAllTransmogAppearances,
+        T("Collect Transmog", "Collect Transmog"),
+        scale,
+        "Interface\\Icons\\INV_Chest_Plate01",
+        BuildTooltipLines
+    )
+end
+
 -- BAGSTER BUTTON INTEGRATION
 -- ============================================================================
 
 local bagsterBagSortBtn, bagsterBankSortBtn
 local bagsterBagClearBtn, bagsterBankClearBtn
 local bagsterBagSellScrapBtn, bagsterBankSellScrapBtn
-local bagnonBagSortBtn, bagnonBankSortBtn
-local bagnonBagClearBtn, bagnonBankClearBtn
+local bagsterBagTransmogBtn
 local vanillaGuildBankSortBtn, bagnonGuildBankSortBtn
 
 local function GetBagsterFrame(index)
     return _G["DragonUI_BagsterFrame" .. index]
 end
 
-local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sortFunc, sortBtnName, clearBtnName, sellScrapBtnName, tooltipText)
-    if sortRef and clearRef and (not sellScrapBtnName or sellScrapRef) then
-        return sortRef, clearRef, sellScrapRef
-    end
+local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, transmogRef, sortFunc, sortBtnName, clearBtnName, sellScrapBtnName, transmogBtnName, tooltipText)
+    local allReady = sortRef and clearRef
+    if sellScrapBtnName then allReady = allReady and sellScrapRef end
+    if transmogBtnName then allReady = allReady and transmogRef end
+    if allReady then return sortRef, clearRef, sellScrapRef, transmogRef end
 
     local frameName = frame:GetName()
     local searchBox = _G[frameName .. "Search"]
@@ -1717,6 +1773,10 @@ local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sort
     local sellScrapBtn = sellScrapRef
     if sellScrapBtnName and not sellScrapRef then
         sellScrapBtn = CreateSellScrapButton(sellScrapBtnName, frame, 0.55)
+    end
+    local transmogBtn = transmogRef
+    if transmogBtnName and not transmogRef then
+        transmogBtn = CreateTransmogCollectButton(transmogBtnName, frame, 0.55)
     end
 
     -- Dragonflight action-button chrome for the header buttons (same recipe as buttons.lua)
@@ -1744,8 +1804,9 @@ local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sort
     StyleHeaderButton(sortBtn)
     StyleHeaderButton(clearBtn)
     StyleHeaderButton(sellScrapBtn)
+    if transmogBtn then StyleHeaderButton(transmogBtn) end
 
-    -- Single header row: [ searchBox ][ sellScrap ][ clearBtn ][ sortBtn ][ bagToggle ]
+    -- Single header row: [ searchBox ][ sellScrap ][ clearBtn ][ transmogBtn ][ sortBtn ][ bagToggle ]
     if bagToggle then
         bagToggle:ClearAllPoints()
         bagToggle:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -30)
@@ -1759,7 +1820,12 @@ local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sort
     end
 
     clearBtn:ClearAllPoints()
-    clearBtn:SetPoint("RIGHT", sortBtn, "LEFT", -4, 0)
+    clearBtn:SetPoint("RIGHT", (transmogBtn or sortBtn), "LEFT", -4, 0)
+
+    if transmogBtn then
+        transmogBtn:ClearAllPoints()
+        transmogBtn:SetPoint("RIGHT", sortBtn, "LEFT", -4, 0)
+    end
 
     if sellScrapBtn then
         sellScrapBtn:ClearAllPoints()
@@ -1771,28 +1837,30 @@ local function AttachBagsterButtons(frame, sortRef, clearRef, sellScrapRef, sort
     sortBtn:Show()
     clearBtn:Show()
     if sellScrapBtn then sellScrapBtn:Show() end
-    return sortBtn, clearBtn, sellScrapBtn
+    if transmogBtn then transmogBtn:Show() end
+    return sortBtn, clearBtn, sellScrapBtn, transmogBtn
 end
 
 local function CreateBagsterSortButtons()
     local inventoryFrame = GetBagsterFrame(1)
     local bankFrame = GetBagsterFrame(2)
 
-    if inventoryFrame and (not bagsterBagSortBtn or not bagsterBagClearBtn or not bagsterBagSellScrapBtn) then
-        bagsterBagSortBtn, bagsterBagClearBtn, bagsterBagSellScrapBtn = AttachBagsterButtons(
-            inventoryFrame, bagsterBagSortBtn, bagsterBagClearBtn, bagsterBagSellScrapBtn,
-            SortPlayerBags, "DragonUI_BagsterBagSortBtn", "DragonUI_BagsterBagClearBtn", "DragonUI_BagsterBagSellScrapBtn",
+    if inventoryFrame and (not bagsterBagSortBtn or not bagsterBagClearBtn or not bagsterBagSellScrapBtn or not bagsterBagTransmogBtn) then
+        bagsterBagSortBtn, bagsterBagClearBtn, bagsterBagSellScrapBtn, bagsterBagTransmogBtn = AttachBagsterButtons(
+            inventoryFrame, bagsterBagSortBtn, bagsterBagClearBtn, bagsterBagSellScrapBtn, bagsterBagTransmogBtn,
+            SortPlayerBags, "DragonUI_BagsterBagSortBtn", "DragonUI_BagsterBagClearBtn", "DragonUI_BagsterBagSellScrapBtn", "DragonUI_BagsterBagTransmogBtn",
             T("Sort Bags", "Sort Bags")
         )
         BagSortModule.frames.bagsterBagSortBtn = bagsterBagSortBtn
         BagSortModule.frames.bagsterBagClearBtn = bagsterBagClearBtn
         BagSortModule.frames.bagsterBagSellScrapBtn = bagsterBagSellScrapBtn
+        BagSortModule.frames.bagsterBagTransmogBtn = bagsterBagTransmogBtn
     end
 
     if bankFrame and (not bagsterBankSortBtn or not bagsterBankClearBtn) then
         bagsterBankSortBtn, bagsterBankClearBtn = AttachBagsterButtons(
-            bankFrame, bagsterBankSortBtn, bagsterBankClearBtn, nil,
-            SortBankBags, "DragonUI_BagsterBankSortBtn", "DragonUI_BagsterBankClearBtn", nil,
+            bankFrame, bagsterBankSortBtn, bagsterBankClearBtn, nil, nil,
+            SortBankBags, "DragonUI_BagsterBankSortBtn", "DragonUI_BagsterBankClearBtn", nil, nil,
             T("Sort Bank", "Sort Bank")
         )
         BagSortModule.frames.bagsterBankSortBtn = bagsterBankSortBtn
@@ -1800,26 +1868,48 @@ local function CreateBagsterSortButtons()
     end
 end
 
-local function AttachBagnonButtons(frame, sortRef, clearRef, sortFunc, sortBtnName, clearBtnName, tooltipText)
-    if not frame then return sortRef, clearRef end
+local function AttachBagnonButtons(frame, sortRef, clearRef, sellScrapRef, transmogRef, sortFunc, sortBtnName, clearBtnName, sellScrapBtnName, transmogBtnName, tooltipText)
+    if not frame then return sortRef, clearRef, sellScrapRef, transmogRef end
 
     local sortBtn = sortRef
-    local clearBtn = clearRef or CreateClearLocksButton(clearBtnName, frame, 0.62)
+	local clearBtn = clearRef or CreateClearLocksButton(clearBtnName, frame, 0.50)
+	local sellScrapBtn = sellScrapRef
+	if sellScrapBtnName and not sellScrapRef then
+		sellScrapBtn = CreateSellScrapButton(sellScrapBtnName, frame, 0.50)
+	end
+	local transmogBtn = transmogRef
+	if transmogBtnName and not transmogRef then
+		transmogBtn = CreateTransmogCollectButton(transmogBtnName, frame, 0.50)
+	end
 
     if sortBtn then
         sortBtn:SetParent(frame)
         sortBtn:SetFrameStrata("HIGH")
         sortBtn:Hide()
     end
-    clearBtn:SetParent(frame)
-    clearBtn:ClearAllPoints()
-    clearBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -58, -10)
+	clearBtn:SetParent(frame)
+	clearBtn:ClearAllPoints()
+	clearBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -44, -10)
     -- Bagnon's title bar keeps re-raising itself; a higher strata always wins.
     clearBtn:SetFrameStrata("HIGH")
     clearBtn:SetFrameLevel(frame:GetFrameLevel() + 20)
     clearBtn:Show()
+    if sellScrapBtn then
+        sellScrapBtn:SetParent(frame)
+        sellScrapBtn:ClearAllPoints()
+        sellScrapBtn:SetPoint("RIGHT", clearBtn, "LEFT", -2, 0)
+        sellScrapBtn:SetFrameLevel(frame:GetFrameLevel() + 20)
+        sellScrapBtn:Show()
+    end
+    if transmogBtn then
+        transmogBtn:SetParent(frame)
+        transmogBtn:ClearAllPoints()
+        transmogBtn:SetPoint("RIGHT", (sellScrapBtn or clearBtn), "LEFT", -2, 0)
+        transmogBtn:SetFrameLevel(frame:GetFrameLevel() + 20)
+        transmogBtn:Show()
+    end
 
-    return sortBtn, clearBtn
+    return sortBtn, clearBtn, sellScrapBtn, transmogBtn
 end
 
 local function CreateBagnonSortButtons()
@@ -1828,19 +1918,23 @@ local function CreateBagnonSortButtons()
     local inventoryFrame = GetBagnonFrame("inventory")
     local bankFrame = GetBagnonFrame("bank")
 
-    if inventoryFrame and (bagnonBagSortBtn or not bagnonBagClearBtn) then
-        bagnonBagSortBtn, bagnonBagClearBtn = AttachBagnonButtons(
-            inventoryFrame, bagnonBagSortBtn, bagnonBagClearBtn,
-            SortPlayerBags, "DragonUI_BagnonBagSortBtn", "DragonUI_BagnonBagClearBtn", T("Sort Bags", "Sort Bags")
+    if inventoryFrame and (bagnonBagSortBtn or not bagnonBagClearBtn or not bagnonBagSellScrapBtn) then
+        bagnonBagSortBtn, bagnonBagClearBtn, bagnonBagSellScrapBtn, bagnonBagTransmogBtn = AttachBagnonButtons(
+            inventoryFrame, bagnonBagSortBtn, bagnonBagClearBtn, bagnonBagSellScrapBtn, bagnonBagTransmogBtn,
+            SortPlayerBags, "DragonUI_BagnonBagSortBtn", "DragonUI_BagnonBagClearBtn", "DragonUI_BagnonBagSellScrapBtn", "DragonUI_BagnonBagTransmogBtn",
+            T("Sort Bags", "Sort Bags")
         )
         BagSortModule.frames.bagnonBagSortBtn = bagnonBagSortBtn
         BagSortModule.frames.bagnonBagClearBtn = bagnonBagClearBtn
+        BagSortModule.frames.bagnonBagSellScrapBtn = bagnonBagSellScrapBtn
+        BagSortModule.frames.bagnonBagTransmogBtn = bagnonBagTransmogBtn
     end
 
     if bankFrame and (bagnonBankSortBtn or not bagnonBankClearBtn) then
         bagnonBankSortBtn, bagnonBankClearBtn = AttachBagnonButtons(
-            bankFrame, bagnonBankSortBtn, bagnonBankClearBtn,
-            SortBankBags, "DragonUI_BagnonBankSortBtn", "DragonUI_BagnonBankClearBtn", T("Sort Bank", "Sort Bank")
+            bankFrame, bagnonBankSortBtn, bagnonBankClearBtn, nil, nil,
+            SortBankBags, "DragonUI_BagnonBankSortBtn", "DragonUI_BagnonBankClearBtn", nil, nil,
+            T("Sort Bank", "Sort Bank")
         )
         BagSortModule.frames.bagnonBankSortBtn = bagnonBankSortBtn
         BagSortModule.frames.bagnonBankClearBtn = bagnonBankClearBtn
@@ -1928,6 +2022,7 @@ end
 local vanillaBagSortBtn, vanillaBankSortBtn
 local vanillaBagClearBtn, vanillaBankClearBtn
 local vanillaBagSellScrapBtn
+local vanillaBagTransmogBtn
 
 local function CreateVanillaBagSortButton()
     if vanillaBagSortBtn then return end
@@ -1941,12 +2036,15 @@ local function CreateVanillaBagSortButton()
     )
     vanillaBagClearBtn = CreateClearLocksButton("DragonUI_VanillaBagClearBtn", UIParent, 0.63)
     vanillaBagSellScrapBtn = CreateSellScrapButton("DragonUI_VanillaBagSellScrapBtn", UIParent, 0.63)
+    vanillaBagTransmogBtn = CreateTransmogCollectButton("DragonUI_VanillaBagTransmogBtn", UIParent, 0.63)
     vanillaBagSortBtn:Hide()
     vanillaBagClearBtn:Hide()
     vanillaBagSellScrapBtn:Hide()
+    vanillaBagTransmogBtn:Hide()
     BagSortModule.frames.vanillaBagSortBtn = vanillaBagSortBtn
     BagSortModule.frames.vanillaBagClearBtn = vanillaBagClearBtn
     BagSortModule.frames.vanillaBagSellScrapBtn = vanillaBagSellScrapBtn
+    BagSortModule.frames.vanillaBagTransmogBtn = vanillaBagTransmogBtn
 end
 
 -- Find which ContainerFrame is currently showing bag 0 (backpack)
@@ -1966,9 +2064,12 @@ local function UpdateVanillaBagSortButton()
         vanillaBagSortBtn:SetParent(backpack)
         vanillaBagClearBtn:SetParent(backpack)
         vanillaBagSellScrapBtn:SetParent(backpack)
+        vanillaBagTransmogBtn:SetParent(backpack)
+
         vanillaBagSortBtn:ClearAllPoints()
         vanillaBagClearBtn:ClearAllPoints()
         vanillaBagSellScrapBtn:ClearAllPoints()
+        vanillaBagTransmogBtn:ClearAllPoints()
         local titleAnchor = _G[backpack:GetName() .. "Name"]
         local skinChrome = backpack._dragonuiBagChrome
         if addon:IsModuleEnabled("bags_skin")
@@ -1977,18 +2078,22 @@ local function UpdateVanillaBagSortButton()
             titleAnchor = skinChrome.title
         end
         vanillaBagSortBtn:SetPoint("TOP", titleAnchor, "BOTTOM", 70.5, -6.5)
-        vanillaBagClearBtn:SetPoint("RIGHT", vanillaBagSortBtn, "LEFT", -3, 0)
+        vanillaBagTransmogBtn:SetPoint("RIGHT", vanillaBagSortBtn, "LEFT", -3, 0)
+        vanillaBagClearBtn:SetPoint("RIGHT", vanillaBagTransmogBtn, "LEFT", -3, 0)
         vanillaBagSellScrapBtn:SetPoint("RIGHT", vanillaBagClearBtn, "LEFT", -3, 0)
         vanillaBagSortBtn:SetFrameLevel(backpack:GetFrameLevel() + 10)
         vanillaBagClearBtn:SetFrameLevel(backpack:GetFrameLevel() + 10)
         vanillaBagSellScrapBtn:SetFrameLevel(backpack:GetFrameLevel() + 10)
+        vanillaBagTransmogBtn:SetFrameLevel(backpack:GetFrameLevel() + 10)
         vanillaBagSortBtn:Show()
         vanillaBagClearBtn:Show()
         vanillaBagSellScrapBtn:Show()
+        vanillaBagTransmogBtn:Show()
     else
         vanillaBagSortBtn:Hide()
         vanillaBagClearBtn:Hide()
         vanillaBagSellScrapBtn:Hide()
+        vanillaBagTransmogBtn:Hide()
     end
 end
 
@@ -2034,31 +2139,39 @@ UpdateButtonVisibility = function()
         if bagsterBagSortBtn then bagsterBagSortBtn:Show() end
         if bagsterBagClearBtn then bagsterBagClearBtn:Show() end
         if bagsterBagSellScrapBtn then bagsterBagSellScrapBtn:Show() end
+        if bagsterBagTransmogBtn then bagsterBagTransmogBtn:Show() end
         if bagsterBankSortBtn then bagsterBankSortBtn:Show() end
         if bagsterBankClearBtn then bagsterBankClearBtn:Show() end
         if bagnonBagSortBtn then bagnonBagSortBtn:Hide() end
         if bagnonBagClearBtn then bagnonBagClearBtn:Hide() end
+        if bagnonBagSellScrapBtn then bagnonBagSellScrapBtn:Hide() end
+        if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Hide() end
         if bagnonBankSortBtn then bagnonBankSortBtn:Hide() end
         if bagnonBankClearBtn then bagnonBankClearBtn:Hide() end
         if vanillaBagSortBtn then vanillaBagSortBtn:Hide() end
         if vanillaBagClearBtn then vanillaBagClearBtn:Hide() end
         if vanillaBagSellScrapBtn then vanillaBagSellScrapBtn:Hide() end
+        if vanillaBagTransmogBtn then vanillaBagTransmogBtn:Hide() end
         if vanillaBankSortBtn then vanillaBankSortBtn:Hide() end
         if vanillaBankClearBtn then vanillaBankClearBtn:Hide() end
     elseif IsBagnonLoaded() then
         CreateBagnonSortButtons()
         if bagnonBagSortBtn then bagnonBagSortBtn:Hide() end
         if bagnonBagClearBtn then bagnonBagClearBtn:Show() end
+        if bagnonBagSellScrapBtn then bagnonBagSellScrapBtn:Show() end
+        if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Show() end
         if bagnonBankSortBtn then bagnonBankSortBtn:Hide() end
         if bagnonBankClearBtn then bagnonBankClearBtn:Show() end
         if vanillaBagSortBtn then vanillaBagSortBtn:Hide() end
         if vanillaBagClearBtn then vanillaBagClearBtn:Hide() end
         if vanillaBagSellScrapBtn then vanillaBagSellScrapBtn:Hide() end
+        if vanillaBagTransmogBtn then vanillaBagTransmogBtn:Hide() end
         if vanillaBankSortBtn then vanillaBankSortBtn:Hide() end
         if vanillaBankClearBtn then vanillaBankClearBtn:Hide() end
         if bagsterBagSortBtn then bagsterBagSortBtn:Hide() end
         if bagsterBagClearBtn then bagsterBagClearBtn:Hide() end
         if bagsterBagSellScrapBtn then bagsterBagSellScrapBtn:Hide() end
+        if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Show() end
         if bagsterBankSortBtn then bagsterBankSortBtn:Hide() end
         if bagsterBankClearBtn then bagsterBankClearBtn:Hide() end
     else
@@ -2069,11 +2182,14 @@ UpdateButtonVisibility = function()
         if vanillaBankClearBtn then vanillaBankClearBtn:Show() end
         if bagnonBagSortBtn then bagnonBagSortBtn:Hide() end
         if bagnonBagClearBtn then bagnonBagClearBtn:Hide() end
+        if bagnonBagSellScrapBtn then bagnonBagSellScrapBtn:Hide() end
+        if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Hide() end
         if bagnonBankSortBtn then bagnonBankSortBtn:Hide() end
         if bagnonBankClearBtn then bagnonBankClearBtn:Hide() end
         if bagsterBagSortBtn then bagsterBagSortBtn:Hide() end
         if bagsterBagClearBtn then bagsterBagClearBtn:Hide() end
         if bagsterBagSellScrapBtn then bagsterBagSellScrapBtn:Hide() end
+        if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Show() end
         if bagsterBankSortBtn then bagsterBankSortBtn:Hide() end
         if bagsterBankClearBtn then bagsterBankClearBtn:Hide() end
     end
@@ -2267,13 +2383,17 @@ local function RestoreBagSortSystem()
     if bagsterBagClearBtn then bagsterBagClearBtn:Hide() end
     if bagsterBankSortBtn then bagsterBankSortBtn:Hide() end
     if bagsterBankClearBtn then bagsterBankClearBtn:Hide() end
+    if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Hide() end
     if bagnonBagSortBtn then bagnonBagSortBtn:Hide() end
     if bagnonBagClearBtn then bagnonBagClearBtn:Hide() end
+    if bagnonBagSellScrapBtn then bagnonBagSellScrapBtn:Hide() end
+    if bagnonBagTransmogBtn then bagnonBagTransmogBtn:Hide() end
     if bagnonBankSortBtn then bagnonBankSortBtn:Hide() end
     if bagnonBankClearBtn then bagnonBankClearBtn:Hide() end
     if vanillaBagSortBtn then vanillaBagSortBtn:Hide() end
     if vanillaBagClearBtn then vanillaBagClearBtn:Hide() end
     if vanillaBagSellScrapBtn then vanillaBagSellScrapBtn:Hide() end
+    if vanillaBagTransmogBtn then vanillaBagTransmogBtn:Hide() end
     if vanillaBankSortBtn then vanillaBankSortBtn:Hide() end
     if vanillaBankClearBtn then vanillaBankClearBtn:Hide() end
     if vanillaGuildBankSortBtn then vanillaGuildBankSortBtn:Hide() end

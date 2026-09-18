@@ -51,6 +51,8 @@ local QUESTTRACKER_POSITION_KEYS = {
     anchor = true,
     x = true,
     y = true,
+    width = true,
+    height = true,
 }
 
 local LOOTROLL_POSITION_KEYS = {
@@ -637,6 +639,10 @@ function PositionPresets:ApplyStoredPositions()
 
         if addon.ApplyErrorMessagesPosition then
             addon.ApplyErrorMessagesPosition()
+        end
+
+        if addon.RefreshExtraActionButtonPosition then
+            addon.RefreshExtraActionButtonPosition()
         end
 
         if addon.RefreshBuffFrame then

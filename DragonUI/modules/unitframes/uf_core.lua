@@ -93,7 +93,7 @@ UF.TEXTURES = {
     -- Shared class icon texture (used by class portrait system)
     CLASS_ICON_ALTERNATIVE_PREFIX = "Interface\\AddOns\\DragonUI\\Textures\\ClassIcons\\",
     CLASS_ICON_ALTERNATIVE_SUFFIX = ".blp",
-    CLASS_ICON = "Interface\\TargetingFrame\\UI-Classes-Circles",
+    CLASS_ICON_ROUND = "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES-ROUND",
 }
 
 
@@ -167,9 +167,6 @@ addon.unitframe.famous = UF.FAMOUS_NPCS
 
 UF.DEFAULT_FONT = addon.Fonts and addon.Fonts.PRIMARY or "Fonts\\FRIZQT__.TTF"
 
--- Fine-tune for non-alternative class portrait apparent size.
--- 0.000 = smallest (native atlas crop), higher values zoom in slightly.
-UF.CLASSIC_CLASS_ICON_INSET = 0.012
 
 
 -- ============================================================================
@@ -246,6 +243,48 @@ end
 
 
 -- ============================================================================
+-- CLASSES KNOWN TO THE ADDON
+-- ============================================================================
+-- Maps every Ascension class token known to the addon for CoA detection and
+-- debug commands. Used as a fallback indicator only — actual rendering goes
+-- through ROUND → TCOORDS → individual BLP.
+
+UF.CLASSES_ALPHA_MAP = {
+    BARBARIAN      = {0, 0},
+    CHRONOMANCER   = {1, 0},
+    CULTIST        = {2, 0},
+    DEATHKNIGHT    = {3, 0},
+    FELSWORN       = {4, 0},
+    DRUID          = {5, 0},
+    KNIGHT_OF_XOROTH = {6, 0},
+    GUARDIAN       = {7, 0},
+    HUNTER         = {1, 1},
+    MAGE           = {2, 1},
+    TEMPLAR        = {3, 1},
+    NECROMANCER    = {4, 1},
+    PALADIN        = {5, 1},
+    PRIEST         = {6, 1},
+    VENOMANCER     = {7, 1},
+    PYROMANCER     = {0, 2},
+    RANGER         = {1, 2},
+    REAPER         = {2, 2},
+    ROGUE          = {3, 2},
+    SHAMAN         = {4, 2},
+    BLOODMAGE      = {5, 2},
+    RUNEMASTER     = {6, 2},
+    STARCALLER     = {7, 2},
+    STORMBRINGER   = {0, 3},
+    SUNCLERIC      = {1, 3},
+    TINKER         = {2, 3},
+    WARLOCK        = {3, 3},
+    WARRIOR        = {4, 3},
+    PRIMALIST      = {5, 3},
+    WITCHDOCTOR    = {6, 3},
+    WITCHHUNTER    = {7, 3},
+    HERO           = {0, 4},
+}
+
+-- ============================================================================
 -- CLASS PORTRAIT
 -- ============================================================================
 -- Overlays a class icon on the unit portrait when enabled.
@@ -256,38 +295,38 @@ function UF.UseAlternativeClassIcons(unitKey)
     return config and config.classPortrait and config.alternativeClassIcons or false
 end
 
+UF.CLASSES_WITH_INDIVIDUAL_BLP = {
+    WARRIOR = true, MAGE = true, ROGUE = true, PRIEST = true,
+    PALADIN = true, SHAMAN = true, HUNTER = true, DRUID = true,
+    WARLOCK = true, DEATHKNIGHT = true,
+}
+
+local CLASSES_WITH_INDIVIDUAL_BLP = UF.CLASSES_WITH_INDIVIDUAL_BLP
+
 function UF.ApplyClassPortraitIcon(icon, classFileName, useAlternative)
     if not icon or not classFileName then
-        return false
+        return false, false
     end
 
-    local function ClampInset(value)
-        local inset = tonumber(value) or 0
-        if inset < 0 then return 0 end
-        if inset > 0.03 then return 0.03 end
-        return inset
-    end
-
-    if useAlternative then
+    if useAlternative and CLASSES_WITH_INDIVIDUAL_BLP[classFileName] then
         icon:SetTexture(
             UF.TEXTURES.CLASS_ICON_ALTERNATIVE_PREFIX
             .. classFileName
             .. UF.TEXTURES.CLASS_ICON_ALTERNATIVE_SUFFIX)
         icon:SetTexCoord(0, 1, 0, 1)
-        return true
+        return true, false
     end
 
-    local coords = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classFileName]
-    if not coords then
-        return false
+    -- CLASS_ICON_TCOORDS_ROUND — Blizzard ya provee iconos recortados en
+    -- UI-CHARACTERCREATE-CLASSES-ROUND. No necesita overlay.
+    local roundCoords = CLASS_ICON_TCOORDS_ROUND and CLASS_ICON_TCOORDS_ROUND[classFileName]
+    if roundCoords then
+        icon:SetTexture(UF.TEXTURES.CLASS_ICON_ROUND)
+        icon:SetTexCoord(roundCoords[1], roundCoords[2], roundCoords[3], roundCoords[4])
+        return true, false
     end
 
-    local inset = ClampInset(UF.CLASSIC_CLASS_ICON_INSET)
-    icon:SetTexture(UF.TEXTURES.CLASS_ICON)
-    icon:SetTexCoord(
-        coords[1] + inset, coords[2] - inset,
-        coords[3] + inset, coords[4] - inset)
-    return true
+    return false, false
 end
 
 function UF.ApplyClassPortraitToTexture(unit, portraitTexture, useAlternative)
@@ -304,7 +343,8 @@ function UF.ApplyClassPortraitToTexture(unit, portraitTexture, useAlternative)
         return false
     end
 
-    if UF.ApplyClassPortraitIcon(portraitTexture, classFileName, useAlternative) then
+    local applied = UF.ApplyClassPortraitIcon(portraitTexture, classFileName, useAlternative)
+    if applied then
         portraitTexture:SetAlpha(1)
         return true
     end

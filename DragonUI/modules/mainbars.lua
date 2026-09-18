@@ -23,7 +23,8 @@ local MainbarsModule = {
     originalVisibility = {},
     actionBarFrames = nil,
     pageDriverInstalled = false,
-    pageDriverFrame = nil
+    pageDriverFrame = nil,
+    pageChangeHookInstalled = false
 }
 addon.MainbarsModule = MainbarsModule  -- Expose globally for external access
 
@@ -295,21 +296,64 @@ function addon.ArrangeActionBarButtons(buttonPrefix, parentFrame, anchorFrame, r
     end
 end
 
+local function GetModuleConfig()
+    return addon:GetModuleConfig("mainbars")
+end
+
 local function IsModuleEnabled()
     return addon:IsModuleEnabled("mainbars")
 end
 
 local mainBarPageByClass = {
-    DRUID = '[bonusbar:1,nostealth] 7; [bonusbar:1,stealth] 7; [bonusbar:2] 8; [bonusbar:3] 9; [bonusbar:4] 10;',
-    WARRIOR = '[bonusbar:1] 7; [bonusbar:2] 8; [bonusbar:3] 9;',
-    PRIEST = '[bonusbar:1] 7;',
-    ROGUE = '[bonusbar:1] 7; [bonusbar:2] 8;',
-    DEFAULT = '[bonusbar:5] 11; [bar:2] 2; [bar:3] 3; [bar:4] 4; [bar:5] 5; [bar:6] 6;'
+  DRUID = '[bonusbar:1,nostealth] 7; [bonusbar:1,stealth] 7; [bonusbar:2] 8; [bonusbar:3] 9; [bonusbar:4] 10;',
+  WARRIOR = '[bonusbar:1] 7; [bonusbar:2] 8; [bonusbar:3] 9;',
+  PRIEST = '[bonusbar:1] 7;',
+  ROGUE = '[bonusbar:1] 7; [bonusbar:2] 8;',
+  -- CoA custom classes with stealth (use [stealth] condition, not bonusbar)
+  PROPHET = '[bonusbar:1,nostealth] 7; [bonusbar:1,stealth] 7; [bonusbar:2] 8; [bonusbar:3] 9; [bonusbar:4] 10;',
+  RANGER = '[bonusbar:1] 7; [nostealth] 1;',
+  REAPER = '[form:1] 7; [nostealth] 1;',
+  SPIRITMAGE = '[bonusbar:1] 7; [nostealth] 1;',
+  HERO = '[bonusbar:1,nostealth] 7; [bonusbar:1,stealth] 8; [bonusbar:2] 8; [bonusbar:3] 9; [bonusbar:4] 10;',
+  SONOFARUGAL = '[bonusbar:1] 7; [bonusbar:2] 8; [bonusbar:3] 9; [bonusbar:4] 10;',
+  BARBARIAN = "[bonusbar:1] 7; [bonusbar:2] 8; [bonusbar:3] 9;",
+  TINKER = "[bonusbar:1] 7;",
+  CULTIST = "[bonusbar:4] 10;",
+  DEFAULT = '[bonusbar:5] 11; [bar:2] 2; [bar:3] 3; [bar:4] 4; [bar:5] 5; [bar:6] 6;'
+}
+
+-- Classes whose forms are too short-lived to justify auto-generating [form:X]
+-- paging (e.g. Demon Hunter metamorphosis — lasts seconds, not worth a bar swap).
+local noAutoFormPaging = {
+    DEMONHUNTER = true,
+    CULTIST = true,
+    WARLOCK = true,
 }
 
 local function GetMainBarPageCondition()
+    -- When the user opts out of form/stance-based page switching, return
+    -- only the default condition (bonusbar:5, bars 2-6). The main action bar
+    -- will stay on the same page regardless of druid shapeshift, warrior
+    -- stance, rogue stealth, or any other form change.
+    local config = GetModuleConfig()
+    if config and config.disable_form_page_switching then
+        return mainBarPageByClass.DEFAULT .. ' 1'
+    end
+
     local condition = mainBarPageByClass.DEFAULT
     local classCondition = mainBarPageByClass[class]
+    -- Fallback: auto-generate form-based paging for unknown CoA custom classes
+    if not classCondition and not noAutoFormPaging[class] then
+        local numForms = GetNumShapeshiftForms()
+        if numForms and numForms > 0 then
+            local parts = {}
+            parts[1] = '[stealth] 7;'
+            for i = 1, 10 do
+                parts[i + 1] = string.format('[bonusbar:%d] %d;', i, 7 + i)
+            end
+            classCondition = table.concat(parts, ' ')
+        end
+    end
     if classCondition then
         condition = condition .. ' ' .. classCondition
     end
@@ -319,6 +363,10 @@ end
 -- Main bar pages are driven through ActionButton actionpage attributes.
 -- Keep BonusAction buttons click-through so they never steal mouse clicks
 -- when form/stance bars toggle visibility.
+-- Same treatment for Possess buttons: CoA override-bar abilities (e.g. Prophet
+-- Burrow) surface via PossessButtonN. If they are left interactive, exiting
+-- the override state can leave stale Possess buttons capturing clicks / focus
+-- away from the main ActionButton bar (residual Prophet keybind bug).
 local function EnsureBonusButtonsClickThrough()
     if InCombatLockdown() then
         if addon.CombatQueue then
@@ -330,9 +378,20 @@ local function EnsureBonusButtonsClickThrough()
     if BonusActionBarFrame and BonusActionBarFrame.EnableMouse then
         BonusActionBarFrame:EnableMouse(false)
     end
+    if PossessBarFrame and PossessBarFrame.EnableMouse then
+        PossessBarFrame:EnableMouse(false)
+    end
 
     for i = 1, NUM_ACTIONBAR_BUTTONS do
         local button = _G["BonusActionButton" .. i]
+        if button and button.EnableMouse then
+            button:EnableMouse(false)
+        end
+    end
+
+    local numPossess = NUM_POSSESS_SLOTS or 10
+    for i = 1, numPossess do
+        local button = _G["PossessButton" .. i]
         if button and button.EnableMouse then
             button:EnableMouse(false)
         end
@@ -498,6 +557,63 @@ local function SetupMainBarPageDriver(mainBar)
         ]])
 
     RegisterStateDriver(mainBar, 'page', GetMainBarPageCondition())
+
+    -- Ensure all action buttons refresh their display after the page
+    -- driver registers. Without this, ActionButton_Update may never
+    -- run with the correct actionpage on first login because:
+    --   1) The initial condition may lack [form:N] entries (forms
+    --      not yet loaded), or
+    --   2) The re-registration later evaluates to the same page,
+    --      so _onstate-page doesn't fire.
+    for i = 1, NUM_ACTIONBAR_BUTTONS do
+        local button = _G["ActionButton" .. i]
+        if button then
+            ActionButton_Update(button)
+        end
+    end
+
+    -- BUGFIX: When the state driver re-evaluates (e.g. stealth breaks),
+    -- _onstate-page sets actionpage on each button, but ActionButton_Update
+    -- is not reliably called for all buttons afterward because the
+    -- OnAttributeChanged -> ActionButton_UpdateAction chain may not fire in
+    -- the secure handler execution context for all reparented buttons.
+    -- Hook OnAttributeChanged on the main bar to force a full refresh of
+    -- every action button whenever the 'page' attribute changes.
+    if not MainbarsModule.pageChangeHookInstalled then
+        mainBar:HookScript('OnAttributeChanged', function(self, name, value)
+            if name == 'page' and value then
+                for i = 1, NUM_ACTIONBAR_BUTTONS do
+                    local button = _G['ActionButton' .. i]
+                    if button then
+                        ActionButton_Update(button)
+                    end
+                end
+            end
+        end)
+        MainbarsModule.pageChangeHookInstalled = true
+    end
+
+    -- For unknown CoA custom classes: regenerate the page condition when
+    -- shapeshift forms become available (GetNumShapeshiftForms() may return
+    -- 0 at init because talents haven't loaded yet, making the [form:X]
+    -- fallback conditions empty until a /reload).
+    if not mainBarPageByClass[class] and not noAutoFormPaging[class] then
+        local formsFrame = CreateFrame("Frame")
+        formsFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
+        formsFrame:SetScript("OnEvent", function()
+            if GetNumShapeshiftForms() > 0 then
+                RegisterStateDriver(mainBar, 'page', GetMainBarPageCondition())
+                for i = 1, NUM_ACTIONBAR_BUTTONS do
+                    local button = _G["ActionButton" .. i]
+                    if button then
+                        ActionButton_Update(button)
+                    end
+                end
+                formsFrame:UnregisterEvent("UPDATE_SHAPESHIFT_FORMS")
+            end
+        end)
+    end
+
     MainbarsModule.stateDrivers.page = { frame = mainBar, state = 'page' }
     MainbarsModule.pageDriverInstalled = true
     MainbarsModule.pageDriverFrame = mainBar
@@ -845,7 +961,24 @@ local function GetXpBarHeight(styleOverride)
     end
 end
 
+-- Realm max level, resolved like Blizzard's ReputationFrame does:
+-- MAX_PLAYER_LEVEL_TABLE[GetAccountExpansionLevel()] (0->Vanilla/60,
+-- 1->TBC/70, 2->WotLK/80). Custom servers keep reporting a non-zero UnitXPMax
+-- at the cap, so the level check is what actually hides the bar.
+local XP_MAX_LEVEL_TABLE = { [0] = 60, [1] = 70, [2] = 80 }
+
+local function GetRealmMaxLevel()
+    local maxLevel = MAX_PLAYER_LEVEL
+    if not maxLevel or maxLevel <= 0 then
+        maxLevel = XP_MAX_LEVEL_TABLE[GetAccountExpansionLevel()] or 80
+    end
+    return maxLevel
+end
+
 local function IsXpBarVisible()
+    local level = UnitLevel("player")
+    if level and level >= GetRealmMaxLevel() then return false end
+    if IsXPUserDisabled and IsXPUserDisabled() then return false end
     local maxXP = UnitXPMax("player")
     if not maxXP or maxXP <= 0 then return false end
     local currXP = UnitXP("player") or 0
@@ -2253,7 +2386,7 @@ local function InitializeMainbars()
     if not IsModuleEnabled() then
         return -- DO NOTHING if disabled
     end
-    
+
     -- Check if already initialized
     if MainbarsModule.initialized then
         return
@@ -2274,6 +2407,8 @@ local function InitializeMainbars()
 
     -- Main bar page driver owner (bug #251): keep bonus/stance page switching
     -- available even when the vehicle module is disabled.
+    -- (SetupMainBarPageDriver is declared top-level above; ported bugfixes
+    -- for OnAttributeChanged and UPDATE_SHAPESHIFT_FORMS now live there.)
 
     addon.SetupMainBarPageDriver = SetupMainBarPageDriver
 
@@ -2299,6 +2434,7 @@ local function InitializeMainbars()
     -- ============================================================================
     -- CORE MAINBAR FUNCTIONS
     -- ============================================================================
+    -- (MainMenuBarMixin methods and helpers are declared top-level above.)
 
     -- Delegates to the fade system instead of setting alpha directly — doing it here used to stomp
     -- the hover/combat hidden state whenever this ran, popping the background back in after a reload.
@@ -2472,7 +2608,8 @@ local function InitializeMainbars()
             UpdateBarPositions()
         end
     end
-   -- Specific function to disable MainMenuBarMaxLevelBar
+    -- (DisableMaxLevelBar, RemoveBlizzardFrames and MainMenuBarMixin:initialize
+    --  are declared top-level above with the full divider-management logic.)
 
     -- Create action bar container frames (RetailUI pattern)
     -- Uses BarContainerSize() for consistent column-based sizing.
@@ -2495,6 +2632,9 @@ local function InitializeMainbars()
     -- update position for secondary action bars - LEGACY FUNCTION
 
     -- Apply the mainbars system
+    -- (ApplyMainbarsSystem is declared top-level above with the full
+    --  XP/Rep text hooks, hover/text-restore fixes, and EnsureGryphonsOnTop.)
+
 
     -- Store functions globally for RefreshMainbarsSystem access
     addon.ApplyActionBarPositions = ApplyActionBarPositions
@@ -2606,7 +2746,7 @@ local function InitializeMainbars()
                     if MainMenuBarExpText then MainMenuBarExpText:Hide() end
                     if ReputationWatchBarText then ReputationWatchBarText:Hide() end
                 end
-                
+
                 -- Ensure gryphons are on top after all setup is complete
                 if pUiMainBarArt then
                     local maxLevel = 1
@@ -2616,7 +2756,7 @@ local function InitializeMainbars()
                             maxLevel = math.max(maxLevel, bar:GetFrameLevel())
                         end
                     end
-                    
+
                     for _, frame in pairs(addon.ActionBarFrames) do
                         if frame and frame.GetFrameLevel then
                             maxLevel = math.max(maxLevel, frame:GetFrameLevel())

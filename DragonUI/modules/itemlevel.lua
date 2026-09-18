@@ -20,6 +20,9 @@ local ItemLevelModule = {
     texts = {} -- Track every created FontString for cleanup
 }
 
+-- Ascension replaces the stock Character/Inspect paper-doll with its own frames.
+local isAscension = _G.PathToAscensionMicroButton ~= nil
+
 if addon.RegisterModule then
     addon:RegisterModule("itemlevel", ItemLevelModule,
         addon.L["Item Level"],
@@ -65,6 +68,9 @@ local NON_GEAR_SLOTS = {
 -- Packed into a number so browsing an auction house does not allocate a table per item.
 local levelCache = {}
 
+-- [itemID] = last unconfirmed (ilvl*10 + quality) reading for a new item, held back until a second read agrees
+local pendingIlvlConfirm = {}
+
 -- Average item level strings, keyed "player"/"inspect"
 local averageTexts = {}
 
@@ -102,8 +108,57 @@ local function Debounce(key, delay, callback)
     end)
 end
 
+local ITEM_LEVEL_PATTERN = ITEM_LEVEL and ITEM_LEVEL:gsub("%%d", "(%%d+)")
+local ilvlScanTip, ilvlScanTipName
+
+-- Servers that rescale items server-side only inject the real ilvl into a
+-- tooltip opened via its live location (SetBagItem/SetLootItem); SetHyperlink
+-- alone still shows the stale base ilvl. lootSlot takes priority over bag/slot.
+local function GetRealItemLevelFromTooltip(link, bag, slot, lootSlot)
+    if not ITEM_LEVEL_PATTERN or not link then return nil end
+    if not ilvlScanTip then
+        ilvlScanTip = CreateFrame("GameTooltip", "DragonUIItemLevelBagScanTip", nil, "GameTooltipTemplate")
+        ilvlScanTipName = ilvlScanTip:GetName()
+    end
+
+    ilvlScanTip:SetOwner(UIParent, "ANCHOR_NONE")
+    ilvlScanTip:ClearLines()
+    if lootSlot ~= nil then
+        ilvlScanTip:SetLootItem(lootSlot)
+    elseif bag ~= nil and slot ~= nil then
+        ilvlScanTip:SetBagItem(bag, slot)
+    else
+        ilvlScanTip:SetHyperlink(link)
+    end
+
+    local numLines = ilvlScanTip:NumLines() or 0
+    if numLines < 2 then
+        -- Empty tooltip means data isn't loaded yet, not "no Item Level line"
+        ilvlScanTip:Hide()
+        return nil, true
+    end
+
+    for i = 2, numLines do
+        -- FontStrings are reused across calls; only trust currently-shown ones
+        local fs = _G[ilvlScanTipName .. "TextLeft" .. i]
+        if fs and fs:IsShown() then
+            local text = fs:GetText()
+            if text and text ~= "" then
+                local lvl = text:match(ITEM_LEVEL_PATTERN)
+                if lvl then
+                    ilvlScanTip:Hide()
+                    return tonumber(lvl)
+                end
+            end
+        end
+    end
+    ilvlScanTip:Hide()
+    return nil
+end
+
 -- Returns ilvl, quality, needsRetry
-local function GetLevelInfo(link)
+-- bag/slot/lootSlot: optional live location (bags, bank, loot window) for GetRealItemLevelFromTooltip
+local function GetLevelInfo(link, bag, slot, lootSlot)
     if not link then return nil end
 
     local itemID = link:match("item:(%d+)")
@@ -124,12 +179,34 @@ local function GetLevelInfo(link)
         return nil
     end
 
-    if itemID then levelCache[itemID] = (ilvl * 10) + (quality or 1) end
+    local realIlvl, uncertain = GetRealItemLevelFromTooltip(link, bag, slot, lootSlot)
+    if realIlvl then
+        ilvl = realIlvl
+    elseif uncertain then
+        -- Data not loaded yet: show the base value, don't cache, retry later
+        return ilvl, quality, true
+    end
+
+    -- Loot-window reads aren't cached: the server can still be finishing a
+    -- rescale at that instant, so wait for the item to settle in a bag/bank.
+    if itemID and not lootSlot then
+        local reading = (ilvl * 10) + (quality or 1)
+        -- Require two consecutive matching reads before trusting a new item,
+        -- since even a bag/bank scan can land mid-rescale.
+        if pendingIlvlConfirm[itemID] == reading then
+            pendingIlvlConfirm[itemID] = nil
+            levelCache[itemID] = reading
+        else
+            pendingIlvlConfirm[itemID] = reading
+            return ilvl, quality, true
+        end
+    end
     return ilvl, quality
 end
 
 local function WipeLevelCache()
     wipe(levelCache)
+    wipe(pendingIlvlConfirm)
 end
 
 -- ============================================================================
@@ -242,7 +319,8 @@ local function DrawItemLevel(button, ilvl, r, g, b, anchorTo)
     fontString:Show()
 end
 
-local function SetButtonItemLevel(button, link, anchorTo, context)
+-- bag/slot/lootSlot: optional live location, see GetLevelInfo
+local function SetButtonItemLevel(button, link, anchorTo, context, bag, slot, lootSlot)
     if not button then return end
 
     if not IsModuleEnabled() or (context and not IsContextEnabled(context)) then
@@ -255,7 +333,7 @@ local function SetButtonItemLevel(button, link, anchorTo, context)
         return
     end
 
-    local ilvl, quality, needsRetry = GetLevelInfo(link)
+    local ilvl, quality, needsRetry = GetLevelInfo(link, bag, slot, lootSlot)
     if needsRetry then ScheduleRetry() end
 
     if not ilvl then
@@ -311,7 +389,8 @@ local function UpdateContainerFrame(frame)
         local button = _G[frameName .. "Item" .. i]
         if button then
             -- Bag items render in reverse order, so the button's own ID is the real slot
-            SetButtonItemLevel(button, GetContainerItemLink(bag, button:GetID()))
+            local slot = button:GetID()
+            SetButtonItemLevel(button, GetContainerItemLink(bag, slot), nil, nil, bag, slot)
         end
     end
 end
@@ -338,7 +417,8 @@ local function UpdateBankSlots()
     for i = 1, NUM_BANKGENERIC_SLOTS do
         local button = _G["BankFrameItem" .. i]
         if button then
-            SetButtonItemLevel(button, GetContainerItemLink(-1, button:GetID()))
+            local slot = button:GetID()
+            SetButtonItemLevel(button, GetContainerItemLink(-1, slot), nil, nil, -1, slot)
         end
     end
 end
@@ -386,6 +466,19 @@ local INSPECT_SLOT_FRAMES = {
     "InspectMainHandSlot", "InspectSecondaryHandSlot", "InspectRangedSlot", "InspectTabardSlot",
 }
 
+-- Ascension prefixes slot frames with "Ascension" (e.g. AscensionCharacterHeadSlot).
+-- Resolve the actual frame name, preferring Ascension's variant when present.
+local function ResolveSlotFrame(frameName)
+    local ascensionName = "Ascension" .. frameName
+    if _G[ascensionName] then
+        return ascensionName
+    end
+    return frameName
+end
+
+local ResolveCharacterSlotFrame = ResolveSlotFrame
+local ResolveInspectSlotFrame = ResolveSlotFrame
+
 -- Never labelled: ammo, cosmetic slots, and the bag bar's own equipment slots.
 -- Needed by slot ID too, since the inspect path reads tooltips, not equipSlot.
 local SKIPPED_SLOT_IDS = {
@@ -398,6 +491,9 @@ local SKIPPED_SLOT_IDS = {
 -- Inventory slot IDs counted for the average: gear only (no ammo/shirt/tabard)
 local AVERAGE_SLOT_IDS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
 
+-- Forward-declared; defined below, reused here for the player's own gear
+local ScanInspectSlot
+
 local function UpdateCharacterSlot(button)
     if not button or not IsContextEnabled("character") then return end
 
@@ -408,7 +504,19 @@ local function UpdateCharacterSlot(button)
         return
     end
 
-    SetButtonItemLevel(button, GetInventoryItemLink("player", slotID))
+    if not GetInventoryItemTexture("player", slotID) then
+        HideButtonItemLevel(button)
+        return
+    end
+
+    local ilvl, link, r, g, b = ScanInspectSlot("player", slotID)
+    if ilvl then
+        DrawItemLevel(button, ilvl, r, g, b)
+        return
+    end
+
+    -- Fall back to the base value (showItemLevel off, or tooltip still loading)
+    SetButtonItemLevel(button, link or GetInventoryItemLink("player", slotID))
 end
 
 -- Plain-text prefix of the localized "Item Level %d" line. Matched literally
@@ -423,9 +531,9 @@ local inspectDataReady = false
 
 -- Transmog servers (Warmane) publish the skin's item in the visible-item fields that
 -- GetInventoryItemLink reads, but build the tooltip from the item really equipped —
--- so for inspect the tooltip is the only truthful source.
+-- so for inspect (and the player's own gear) the tooltip is the only truthful source.
 -- Returns ilvl, link, r, g, b
-local function ScanInspectSlot(unit, slotID)
+function ScanInspectSlot(unit, slotID)
     if not scanTip then
         scanTip = CreateFrame("GameTooltip", "DragonUIItemLevelScanTip", nil, "GameTooltipTemplate")
         scanTipName = scanTip:GetName()
@@ -456,9 +564,14 @@ local function ScanInspectSlot(unit, slotID)
     return ilvl, link, r, g, b
 end
 
+local function GetInspectFrame()
+    return _G.AscensionInspectFrame or InspectFrame
+end
+
 local function UpdateInspectSlot(button)
     if not button or not IsContextEnabled("inspect") then return end
-    if not InspectFrame or not InspectFrame.unit then return end
+    local inspectFrame = GetInspectFrame()
+    if not inspectFrame or not inspectFrame.unit then return end
 
     local slotID = button:GetID()
     if not slotID or slotID < 0 then return end
@@ -467,7 +580,7 @@ local function UpdateInspectSlot(button)
         return
     end
 
-    local unit = InspectFrame.unit
+    local unit = inspectFrame.unit
     if not inspectDataReady or not GetInventoryItemTexture(unit, slotID) then
         HideButtonItemLevel(button)
         return
@@ -512,13 +625,13 @@ local function CalculateAverage(unit, useTooltipScan)
     end
 
     if count == 0 then return nil, incomplete end
-    return math.floor((total / count) + 0.5), incomplete
+    return math.floor((total / count) * 100 + 0.5) / 100, incomplete
 end
 
 -- Model frames draw the 3D model over their own regions, so the text needs its own
 -- frame at a higher level; a FontString inside the model frame stays invisible.
 -- Height above the model frame's bottom edge; the two panels need different clearance
-local AVERAGE_Y_OFFSET = { player = 24, inspect = 0 }
+local AVERAGE_Y_OFFSET = { player = 24, inspect = 24 }
 
 local function GetOrCreateAverageText(key, parent, modelFrame)
     if averageTexts[key] then return averageTexts[key] end
@@ -563,7 +676,9 @@ local function UpdateAverageFor(key, context, unit, parent, modelFrame, useToolt
         return
     end
 
-    fontString:SetFormattedText(addon.L["Item Level: %d"], average)
+    local template = addon.L and addon.L["Item Level: %d"]
+    if template then template = template:gsub("%%d", "%%.2f") end
+    fontString:SetFormattedText(template or "Item Level: %.2f", average)
     fontString:Show()
 end
 
@@ -592,24 +707,38 @@ local function UpdateCharacterAverage()
         if averageTexts["player"] then averageTexts["player"]:Hide() end
         return
     end
-    UpdateAverageFor("player", "character", "player", PaperDollFrame, CharacterModelFrame)
+    if isAscension then
+        UpdateAverageFor("player", "character", "player",
+            _G.AscensionCharacterFrame or PaperDollFrame,
+            _G.AscensionPaperDollPanelModel or CharacterModelFrame, true)
+    else
+        UpdateAverageFor("player", "character", "player", PaperDollFrame, CharacterModelFrame, true)
+    end
 end
 
 local function HideInspectTexts()
     for _, frameName in ipairs(INSPECT_SLOT_FRAMES) do
-        local button = _G[frameName]
+        local resolved = ResolveInspectSlotFrame(frameName)
+        local button = _G[resolved]
         if button then HideButtonItemLevel(button) end
     end
     if averageTexts["inspect"] then averageTexts["inspect"]:Hide() end
 end
 
 local function UpdateInspectAverage()
-    if not InspectFrame or not InspectFrame.unit then return end
+    local inspectFrame = GetInspectFrame()
+    if not inspectFrame or not inspectFrame.unit then return end
     if not inspectDataReady then
         if averageTexts["inspect"] then averageTexts["inspect"]:Hide() end
         return
     end
-    UpdateAverageFor("inspect", "inspect", InspectFrame.unit, InspectPaperDollFrame, InspectModelFrame, true)
+    if isAscension then
+        UpdateAverageFor("inspect", "inspect", inspectFrame.unit,
+            AscensionInspectFrame, InspectPaperDollPanelModel, true)
+    else
+        UpdateAverageFor("inspect", "inspect", inspectFrame.unit,
+            InspectPaperDollFrame, InspectModelFrame, true)
+    end
 end
 
 -- Slot hooks fire once per slot; without this the inspect average would rescan
@@ -627,7 +756,8 @@ end
 local function UpdateAllCharacterSlots()
     if not IsContextEnabled("character") then return end
     for _, frameName in ipairs(EQUIP_SLOT_FRAMES) do
-        local button = _G[frameName]
+        local resolved = ResolveCharacterSlotFrame(frameName)
+        local button = _G[resolved]
         if button then UpdateCharacterSlot(button) end
     end
     UpdateCharacterAverage()
@@ -635,9 +765,11 @@ end
 
 local function UpdateAllInspectSlots()
     if not IsContextEnabled("inspect") then return end
-    if not InspectFrame or not InspectFrame:IsShown() then return end
+    local inspectFrame = GetInspectFrame()
+    if not inspectFrame or not inspectFrame:IsShown() then return end
     for _, frameName in ipairs(INSPECT_SLOT_FRAMES) do
-        local button = _G[frameName]
+        local resolved = ResolveInspectSlotFrame(frameName)
+        local button = _G[resolved]
         if button then UpdateInspectSlot(button) end
     end
     UpdateInspectAverage()
@@ -721,7 +853,7 @@ local function UpdateLootButton(index)
     -- Loot rows are wide name plates; the icon is only the left square
     local icon = _G["LootButton" .. index .. "IconTexture"]
     local link = button.slot and GetLootSlotLink(button.slot) or nil
-    SetButtonItemLevel(button, button:IsShown() and link or nil, icon)
+    SetButtonItemLevel(button, button:IsShown() and link or nil, icon, nil, nil, nil, button.slot)
 end
 
 local function UpdateAllLootButtons()
@@ -827,7 +959,13 @@ local function RefreshBagsterItemLevels()
             if items then
                 for _, item in pairs(items) do
                     local context = (item.IsBank and item:IsBank()) and "bank" or "bags"
-                    SetButtonItemLevel(item, item.GetItem and item:GetItem() or nil, nil, context)
+                    local link = item.GetItem and item:GetItem() or nil
+                    -- Only trust bag/slot for live items (mirrors UpdateSlotColor's guard)
+                    local bag, slot
+                    if link and item.GetBag and item.IsCached and not item:IsCached() then
+                        bag, slot = item:GetBag(), item:GetID()
+                    end
+                    SetButtonItemLevel(item, link, nil, context, bag, slot)
                 end
             end
         end
@@ -878,21 +1016,21 @@ end
 
 local function InstallInspectHooks()
     if ItemLevelModule.hooks["Inspect"] then return end
-    if not InspectPaperDollItemSlotButton_Update then return end
 
-    hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
-        UpdateInspectSlot(button)
-        ScheduleAverageUpdate("inspect")
-    end)
+    if isAscension then
+        -- Ascension replaces the Blizzard inspect paper-doll entirely.
+        -- Wait for the Ascension inspect addon to load; retry from ADDON_LOADED.
+        if not _G.AscensionInspectFrame then return end
 
-    -- Retargeting reuses the open frame: InspectFrame_UnitChanged calls this right
-    -- after NotifyInspect, so the tooltips still hold the previous unit's gear.
-    if InspectPaperDollFrame_OnShow then
-        hooksecurefunc("InspectPaperDollFrame_OnShow", function()
+        hooksecurefunc(AscensionInspectFrame, "UpdateCharacterInfo", function()
+            inspectDataReady = true
+            UpdateAllInspectSlots()
+            ScheduleAverageUpdate("inspect")
+        end)
+        AscensionInspectFrame:HookScript("OnShow", function()
             RefillRetryBudget()
             inspectDataReady = false
             HideInspectTexts()
-            -- Safety net: draw anyway if INSPECT_TALENT_READY never arrives
             Debounce("inspectfallback", 1.5, function()
                 if not inspectDataReady then
                     inspectDataReady = true
@@ -900,6 +1038,31 @@ local function InstallInspectHooks()
                 end
             end)
         end)
+    else
+        -- Stock Blizzard inspect UI
+        if not InspectPaperDollItemSlotButton_Update then return end
+
+        hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
+            UpdateInspectSlot(button)
+            ScheduleAverageUpdate("inspect")
+        end)
+
+        -- Retargeting reuses the open frame: InspectFrame_UnitChanged calls this right
+        -- after NotifyInspect, so the tooltips still hold the previous unit's gear.
+        if InspectPaperDollFrame_OnShow then
+            hooksecurefunc("InspectPaperDollFrame_OnShow", function()
+                RefillRetryBudget()
+                inspectDataReady = false
+                HideInspectTexts()
+                -- Safety net: draw anyway if INSPECT_TALENT_READY never arrives
+                Debounce("inspectfallback", 1.5, function()
+                    if not inspectDataReady then
+                        inspectDataReady = true
+                        UpdateAllInspectSlots()
+                    end
+                end)
+            end)
+        end
     end
 
     ItemLevelModule.hooks["Inspect"] = true
@@ -939,7 +1102,8 @@ local function ApplyItemLevelSystem()
         hooksecurefunc("BankFrameItemButton_Update", function(button)
             if not IsContextEnabled("bank") then return end
             if not BankFrame or not BankFrame:IsShown() or button.isBag then return end
-            SetButtonItemLevel(button, GetContainerItemLink(-1, button:GetID()))
+            local slot = button:GetID()
+            SetButtonItemLevel(button, GetContainerItemLink(-1, slot), nil, nil, -1, slot)
         end)
         ItemLevelModule.hooks["BankFrame"] = true
     end
@@ -958,6 +1122,15 @@ local function ApplyItemLevelSystem()
             addon:After(0.05, UpdateAllCharacterSlots)
         end)
         ItemLevelModule.hooks["PaperDollShow"] = true
+    end
+
+    -- Ascension: the stock PaperDollFrame is hidden; hook the Ascension frame directly.
+    if isAscension and not ItemLevelModule.hooks["AscensionPaperDoll"] and _G.AscensionCharacterFrame then
+        AscensionCharacterFrame:HookScript("OnShow", function()
+            RefillRetryBudget()
+            addon:After(0.05, UpdateAllCharacterSlots)
+        end)
+        ItemLevelModule.hooks["AscensionPaperDoll"] = true
     end
 
     if not ItemLevelModule.hooks["Merchant"] and MerchantFrame_UpdateMerchantInfo then
@@ -1113,7 +1286,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             end)
         elseif not IsModuleEnabled() then
             return
-        elseif arg1 == "Blizzard_InspectUI" then
+        elseif arg1 == "Blizzard_InspectUI" or arg1 == "Ascension_InspectUI" then
             InstallInspectHooks()
         elseif arg1 == "Blizzard_GuildBankUI" then
             InstallGuildBankHooks()
@@ -1132,6 +1305,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         Debounce("character", 0.2, UpdateAllCharacterSlots)
 
     elseif event == "BAG_UPDATE" then
+        RefillRetryBudget()
         Debounce("bags", 0.2, UpdateAllContainerFrames)
 
     elseif event == "BANKFRAME_OPENED" or event == "PLAYERBANKSLOTS_CHANGED"
@@ -1176,7 +1350,8 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         Debounce("inspect", 0.1, UpdateAllInspectSlots)
 
     elseif event == "UNIT_INVENTORY_CHANGED" then
-        if InspectFrame and InspectFrame:IsShown() and InspectFrame.unit and arg1 == InspectFrame.unit then
+        local inspectFrame = GetInspectFrame()
+        if inspectFrame and inspectFrame:IsShown() and inspectFrame.unit and arg1 == inspectFrame.unit then
             Debounce("inspect", 0.2, UpdateAllInspectSlots)
         end
     end

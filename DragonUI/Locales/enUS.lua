@@ -192,11 +192,16 @@ L["TotemBarOverlay"] = "Totem Bar"
 L["PlayerCastbar"] = "Castbar"
 L["TargetCastbar"] = "Target Castbar"
 L["FocusCastbar"] = "Focus Castbar"
+L["AttackbarPlayer"] = "Swing Timer (MH)"
+L["AttackbarOffhand"] = "Swing Timer (OH)"
+L["AttackbarEnemy"] = "Enemy Swing Timer"
 L["TooltipWidget"] = "Tooltip"
 L["Buff"] = true
 L["Debuffs"] = "Debuff"
+L["Auras"] = true
 L["WeaponEnchants"] = "Weapon Enchants"
 L["Loot Roll"] = true
+L["LevelUpFrame"] = "Level Up"
 L["Quest Tracker"] = true
 
 -- Mover tooltip strings
@@ -211,6 +216,14 @@ L["Left"] = true
 L["Right"] = true
 L["Error Messages"] = true
 L["ErrorMessages"] = true
+L["ExtraActionButton"] = "Extra Action Button"
+L["PlayerPrimaryStat"] = "Primary Stat"
+L["TargetPrimaryStat"] = "Target Primary Stat"
+L["Primary stat icon movability widget"] = true
+L["WildCardDice"] = "WildCard Dice"
+L["Ascension WildCard dice movability widget"] = true
+L["DurabilityFrameWidget"] = "Durability Frame"
+L["Durability frame movability widget"] = true
 
 -- Editor mode system messages
 L["All editable frames shown for editing"] = true
@@ -245,10 +258,20 @@ L["Disable Both"] = true
 L["Use DragonUI Unit Frame Layers"] = true
 L["Disable both Unit Frame Layers"] = true
 
+-- Nameplate conflict detection
+L["DragonUI - Nameplate Conflict"] = true
+L["The addon |cFFFFFF00%s|r provides nameplate functionality which conflicts with DragonUI Nameplates."] = true
+L["Select which nameplate system to keep:"] = true
+L["DragonUI Nameplates"] = true
+L["Keep DragonUI Nameplates and disable %s"] = true
+L["Keep %s and disable DragonUI Nameplates"] = true
+L["Don't ask again"] = true
+
 -- Conflict reasons
 L["Conflicts with DragonUI's custom unit frame textures and power bar system."] = true
 L["Resets minimap mask and blip textures. DragonUI re-applies its custom textures automatically."] = true
 L["SexyMap modifies the minimap borders, shape, and zone text which conflicts with DragonUI's minimap module."] = true
+L["Nameplate functionality conflicts with DragonUI's nameplate module."] = true
 L["Reads native nameplate alpha to identify the target's plate; conflicts with DragonUI's default anti-dim behavior."] = true
 L["Parents its cooldown icons to the native health bar; conflicts with DragonUI's default health-bar hiding."] = true
 
@@ -319,6 +342,7 @@ L["Slot locked (bag %d, slot %d)."] = true
 L["Slot unlocked (bag %d, slot %d)."] = true
 L["Could not clear locks (config not ready)."] = true
 L["Cleared all sort-locked slots."] = true
+L["Cannot sort bags while in combat."] = true
 
 -- Sell Scrap
 L["Sell Scrap"] = true
@@ -328,6 +352,9 @@ L["Open a merchant window first to sell scrap items."] = true
 L["Sold %d scrap item(s) for %s."] = true
 L["No scrap items to sell."] = true
 
+-- Transmog Collect
+L["Collect Transmog"] = true
+L["Click to collect all uncollected transmog appearances from your bags."] = true
 -- Guild Bank Sort
 L["You must be at the guild bank."] = true
 L["Could not determine the current guild bank tab."] = true
@@ -447,6 +474,15 @@ L["Aura Borders"] = true
 L["Modern borders on buff and debuff icons."] = true
 L["Dark Mode"] = true
 L["Darken UI borders and chrome"] = true
+L["Merchant"] = true
+L["Retail-style vendor window chrome"] = true
+L["Sell all junk items"] = true
+L["Sell all of your junk (gray) items?"] = true
+L["Sold %d junk item(s)."] = true
+L["BUYBACK"] = true
+L["The bank is closed."] = true
+L["Compact Frames"] = true
+L["Flat retail-style health bars on compact party/raid frames"] = true
 L["Item Quality"] = true
 L["Color item borders by quality in bags, character panel, bank, and merchant"] = true
 L["Item Level"] = true
@@ -575,6 +611,8 @@ L["%s's Bank"] = true
 L["Inventory"] = true
 L["Bank"] = true
 L["Bags"] = true
+L["Bag Skin"] = true
+L["Retail-style textures for bags (Combuctor + default)"] = true
 L["|cff00ff00Left-Click|r to toggle bag display"] = true
 L["|cff00ff00Right-Click|r to toggle inventory"] = true
 L["|cff00ff00Right-Click|r to toggle bank"] = true
@@ -595,9 +633,31 @@ L["Reputation: "] = true
 L["Double-Click to Copy"] = true
 L["Copy Text"] = true
 
+-- ============================================================================
+-- BNET TOAST MODULE
+-- ============================================================================
+
+L["BNet Toast"] = true
+L["bnToast"] = true
+L["Friend online/offline notifications with Battle.net toasts and chat messages"] = true
+L["Position & Scale"] = "Position & Scale"
+L["Scale of the BNet toast frame."] = "Scale of the BNet toast frame."
+L["Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."] = "Horizontal position of the BNet toast from the screen center. Negative values move left, positive values move right."
+L["Vertical offset of the BNet toast frame. Negative values move down, positive values move up."] = "Vertical offset of the BNet toast frame. Negative values move down, positive values move up."
+
+-- Level Up Enhance Module
+L["Level Up Enhance"] = true
+L["Enhanced level-up notification with animated frame"] = true
+L["You've Reached"] = true
+L["Level %d"] = true
+
 -- Version Check Module
 L["Version Check"] = true
 L["Broadcast and detect addon version updates across group members"] = true
+
+-- Performance Warmup Module
+L["UI Warmup"] = true
+L["Pre-loads select Blizzard panels on login to avoid first-use freezes during gameplay."] = true
 
 -- Quest nameplate icons wizard (Questie coexistence)
 L["Quest Icons on Nameplates"] = true
@@ -655,6 +715,16 @@ L["Weighted score of your equipped gear."] = true
 L["Reset stat order"] = true
 L["Restore the stat categories to their default order?"] = true
 
+-- ============================================================================
+-- DAMAGE METER SKIN (DETAILS!)
+-- ============================================================================
+
+L["Damage Meter Skin"] = true
+L["A retail-styled theme for the Details! Damage Meter: gold-titled header bar, class-coloured bars and abbreviated numbers."] = true
+L["Details! skin applied."] = true
+L["Could not apply the skin - Details! is not ready yet."] = true
+L["Details! is not installed."] = true
+
 -- World Map
 L["World Map"] = true
 L["Retail-style world map with breadcrumb navigation and a quest log side panel"] = true
@@ -676,3 +746,11 @@ L["Show Flight Points"] = true
 L["Flight Master"] = true
 L["Click to view on Map"] = true
 L["Search Quest Log"] = true
+
+-- Iconic
+L["Iconic"] = true
+L["Item icons in chat, merchant improvements, and enhanced item tooltips."] = true
+
+-- Item Loot (Loot Toast)
+L["Loot Toast"] = true
+L["Pretty loot toast alert notifications with custom textures."] = true
