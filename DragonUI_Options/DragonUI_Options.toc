@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: |cff1784d1DragonUI|r |cffffffffOptions|r
+## Title: |cff1784d1DragonUI|r |cffffffffOptions|r - [|cffA335EEWoW-Hollow|r]
 ## Notes: Configuration UI for DragonUI
 ## Author: Neticsoul, PentSec, MiiKiis (WoW Hollow)
 ## Version: 3.2

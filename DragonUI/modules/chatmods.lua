@@ -26,6 +26,27 @@
         frames = {}
     }
 
+    -- ============================================================================
+    -- BLIZZARD 3.3.5a CLIENT BUG FIX
+    -- When connecting or switching zones, servers (AzerothCore/TrinityCore) may send
+    -- a CHAT_MSG_CHANNEL_NOTICE event with notice type "NOT_IN_LFG" for LookingForGroup.
+    -- ChatFrame.lua:2802 attempts format(_G["CHAT_"..arg1.."_NOTICE"], arg8, arg9),
+    -- but Blizzard never defined CHAT_NOT_IN_LFG_NOTICE in GlobalStrings.lua, causing:
+    -- "Interface\FrameXML\ChatFrame.lua:2802: bad argument #1 to 'format' (string expected, got nil)"
+    -- We define a fallback string and filter unhandled channel notices to prevent crashes.
+    -- ============================================================================
+    if not _G.CHAT_NOT_IN_LFG_NOTICE then
+        _G.CHAT_NOT_IN_LFG_NOTICE = "%s"
+    end
+
+    if ChatFrame_AddMessageEventFilter then
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL_NOTICE", function(self, event, noticeType, ...)
+            if noticeType == "NOT_IN_LFG" or not _G["CHAT_" .. tostring(noticeType) .. "_NOTICE"] then
+                return true -- Silently suppress notices with missing format strings
+            end
+        end)
+    end
+
     -- Saves the Blizzard-default editbox border textures before we clear them,
     -- so we can restore them when vanillaEditbox is toggled on at runtime.
     local function SaveEditboxTextures()
