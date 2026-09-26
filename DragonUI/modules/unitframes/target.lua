@@ -486,7 +486,7 @@ local api = UF.TargetStyle.Create({
     },
 
     -- Feature flags
-    keepManaInForms         = true,   -- Custom server: mana bar stays MANA (classless bars own RAGE/ENERGY)
+    keepManaInForms         = false,  -- Custom server: mana bar stays MANA (classless bars own RAGE/ENERGY)
     forceLayoutOnUnitChange = true,   -- ReapplyElementPositions on every change
     hasTapDenied            = true,   -- Grey name bg for tapped-by-other targets
 

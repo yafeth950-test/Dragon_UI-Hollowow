@@ -24,7 +24,7 @@ local Module = {
     originalStates = {},
     -- Custom server: classless bars (PlayerFrameClassless*/TargetFrameClassless*)
     -- already render RAGE/ENERGY, so the vanilla power bar stays MANA in druid forms.
-    keepManaInForms = true,
+    keepManaInForms = false,
 }
 
 if addon.RegisterModule then
@@ -3125,6 +3125,9 @@ local function SetupPlayerEvents()
         elseif POWER_EVENTS[event] then
             UpdateManaBarColor(PlayerFrameManaBar)
             UpdatePowerBarTexture(PlayerFrameManaBar)
+            if Module.textSystem and Module.textSystem.update then
+                Module.textSystem.update()
+            end
             -- Update alternate mana text (both always visible and hover modes)
             local config = GetPlayerConfig()
             if config and config.alwaysShowAlternateManaText then
