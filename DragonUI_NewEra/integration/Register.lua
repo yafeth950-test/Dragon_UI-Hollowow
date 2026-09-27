@@ -459,10 +459,8 @@ function NE.RegisterPanel(spec)
                 name    = id,
                 default = true,
                 onBoot  = function()
-                    -- Only open/show when the panel is enabled in config.
-                    if isEnabled() and spec.openFn then
-                        spec.openFn()
-                    end
+                    -- Window panels must NOT be auto-opened on boot.
+                    if spec.onBoot then pcall(spec.onBoot) end
                 end,
             }
         end)
@@ -479,15 +477,14 @@ function NE.RegisterPanel(spec)
     local moduleTable = {
         ne_id = id,
         Enable = function()
-            if spec.openFn then spec.openFn() end
+            -- Module is enabled in settings. Window panels must NOT be auto-opened on login.
+            if spec.onEnable then pcall(spec.onEnable) end
         end,
         Disable = function()
             if spec.closeFn then spec.closeFn() end
         end,
         Refresh = function()
-            if isEnabled() then
-                if spec.openFn then spec.openFn() end
-            else
+            if not isEnabled() then
                 if spec.closeFn then spec.closeFn() end
             end
         end,

@@ -28,9 +28,7 @@ end
 -- Validate each entry individually before adding it here (Canary/profiler).
 -- Never include frames hooked by DragonUI_NewEra or server custom frames
 -- (such as LFDParentFrame, FriendsFrame, AscensionLFGFrame) which trigger window opens.
-local WARMUP_PANELS = {
-    "SpellBookFrame",
-}
+local WARMUP_PANELS = {}
 
 -- Show/Hide triggers each panel's own OnShow sound. Muting SFX only around
 -- the call avoids an audible "windows opening" burst on login.

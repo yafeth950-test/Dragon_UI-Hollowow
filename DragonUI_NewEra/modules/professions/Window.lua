@@ -735,8 +735,8 @@ end
 -- Guard flag: blocks auto-open of Professions triggered by the server sending
 -- TRADE_SKILL_SHOW / CRAFT_SHOW automatically on login/reload. Cleared after a
 -- short delay so that any player-initiated craft open (clicking profession icon)
--- after that delay works normally.
-local _loginGuard = false
+-- after that delay works normally. Initialized to true so early events are caught.
+local _loginGuard = true
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
@@ -757,7 +757,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     -- Block auto-open events that the server may fire right after login/reload.
     _loginGuard = true
     if C_Timer and C_Timer.After then
-      C_Timer.After(5, function() _loginGuard = false end)
+      C_Timer.After(6, function() _loginGuard = false end)
     end
     -- Prewarm both the plain-bar fill texture and the art-based profession flipbook sheets on a
     -- SHOWN frame so their first visible use doesn't resolve as a dark placeholder.
@@ -775,6 +775,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       C._genericBarPrewarm = t
     end)
     -- Register with the module system.
+    -- NOTE: No openFn here. RegisterPanel wires openFn into DragonUI's ModuleRegistry
+    -- Enable/Refresh hooks and NE.modules onBoot, which popped the Professions window
+    -- open on every login/reload. Professions open only on user demand (TRADE_SKILL_SHOW).
     guard("RegisterPanel", function()
       if NE.RegisterPanel then
         NE.RegisterPanel({
@@ -782,7 +785,6 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
           title   = _G.TRADE_SKILLS or "Professions",
           desc    = L["Retail-style crafting window for all professions."],
           frame   = C.frame,
-          openFn  = C.Show,
           closeFn = C.Hide,
           -- defaultPoint must be nil or a plain anchor string accepted by DragonUI movers.lua.
           -- Passing a table causes strsplit to error on the table value.
