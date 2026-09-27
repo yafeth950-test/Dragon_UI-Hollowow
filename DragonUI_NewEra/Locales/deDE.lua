@@ -387,6 +387,7 @@ L["Click for this frame's settings."] = "Klicken für die Einstellungen dieses F
 L["Combined Bag"] = "Kombinierte Tasche"
 L["Custom"] = "Benutzerdefiniert"
 L["Custom scale"] = "Benutzerdefinierte Skalierung"
+L["Text scale"] = "Textskalierung"
 L["Drag to move."] = "Ziehen zum Verschieben."
 L["Each window's size: \"Use UI scale\" follows the game's UI Scale slider, \"No scaling\" stays pixel-perfect, \"Custom\" uses its slider. The custom slider is greyed out and locked unless that window's mode is set to Custom."] = "Die Größe jedes Fensters: \"UI-Skalierung verwenden\" folgt dem UI-Skalierungsregler des Spiels, \"Keine Skalierung\" bleibt pixelgenau, \"Benutzerdefiniert\" nutzt den eigenen Regler. Der benutzerdefinierte Regler ist gesperrt, solange der Modus des Fensters nicht auf 'Benutzerdefiniert' steht."
 L["Guild"] = "Gilde"

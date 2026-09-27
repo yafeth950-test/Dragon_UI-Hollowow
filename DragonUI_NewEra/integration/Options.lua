@@ -183,6 +183,14 @@ local function builder(scroll)
                 setFunc  = function(v) S.SetCustom(key, v) end,
                 disabled = function() return S.Get(key) ~= "custom" end,
             })
+            if key == "social" then
+                C:AddSlider(parent, {
+                    label    = L["Text scale"] or "Text scale",
+                    min      = 0.8, max = 2.5, step = 0.05,
+                    getFunc  = function() return S.GetTextScale and S.GetTextScale(key) or 1.0 end,
+                    setFunc  = function(v) if S.SetTextScale then S.SetTextScale(key, v) end end,
+                })
+            end
         end
 
         if AceGUI then

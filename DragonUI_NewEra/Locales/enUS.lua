@@ -381,6 +381,7 @@ L["Click for this frame's settings."] = true
 L["Combined Bag"] = true
 L["Custom"] = true
 L["Custom scale"] = true
+L["Text scale"] = true
 L["Drag to move."] = true
 L["Each window's size: \"Use UI scale\" follows the game's UI Scale slider, \"No scaling\" stays pixel-perfect, \"Custom\" uses its slider. The custom slider is greyed out and locked unless that window's mode is set to Custom."] = true
 L["Guild"] = true

@@ -284,6 +284,7 @@ local function createWindow()
   if SO.SetupRaid then SO.SetupRaid(f) end
 
   f:HookScript("OnShow", function()
+    SO.ApplyTextScale()
     if ShowFriends then ShowFriends() end
     if SO.RefreshFriends then SO.RefreshFriends() end
     SO.SetWhoRouting(f._mode == "WHO")
@@ -308,6 +309,8 @@ local function createWindow()
     NE.panelchrome.PinPixelPerfect(f)
   end
 
+  SO.ApplyTextScale()
+
   -- Join the panel row (core/PanelManager.lua) — this replaces the hand-rolled "push Guild to my
   -- right" rule that used to live in SO.Show, which only ever knew about the Guild window and so
   -- left this frame stacked on top of the Auction House (github issue #49).
@@ -316,6 +319,52 @@ local function createWindow()
   SO.SetMode("FRIENDS")
   SO.UpdateGuildTab()
   return f
+end
+
+local function applyFontScaleToRegion(region, scale)
+  if not region then return end
+  if region.IsObjectType and (region:IsObjectType("FontString") or region:IsObjectType("EditBox")) then
+    local font, size, flags = region:GetFont()
+    if font and size and size > 0 then
+      if not region._neBaseFontSize then
+        region._neBaseFontSize = size
+        region._neBaseFont = font
+        region._neBaseFlags = flags or ""
+      end
+      local newSize = math.max(6, math.floor(region._neBaseFontSize * scale + 0.5))
+      region:SetFont(region._neBaseFont or font, newSize, region._neBaseFlags or "")
+    end
+  end
+end
+
+local function applyFontScaleToFrame(frame, scale)
+  if not frame then return end
+  local regions = { frame:GetRegions() }
+  for _, r in ipairs(regions) do
+    applyFontScaleToRegion(r, scale)
+  end
+  local children = { frame:GetChildren() }
+  for _, c in ipairs(children) do
+    applyFontScaleToFrame(c, scale)
+  end
+end
+
+function SO.GetTextScale()
+  if NE.scale and NE.scale.GetTextScale then
+    return NE.scale.GetTextScale("social")
+  end
+  return 1.0
+end
+
+function SO.ApplyTextScale(scale)
+  scale = scale or SO.GetTextScale()
+  local f = SO.frame
+  if not f then return end
+  applyFontScaleToFrame(f, scale)
+
+  if SO.UpdateFriendsTextScale then SO.UpdateFriendsTextScale(scale) end
+  if SO.UpdateWhoTextScale then SO.UpdateWhoTextScale(scale) end
+  if SO.UpdateChannelsTextScale then SO.UpdateChannelsTextScale(scale) end
 end
 
 function SO.Show()

@@ -387,6 +387,7 @@ L["Click for this frame's settings."] = "Щёлкните для настрое�
 L["Combined Bag"] = "Объединённая сумка"
 L["Custom"] = "Своё значение"
 L["Custom scale"] = "Свой масштаб"
+L["Text scale"] = "Масштаб текста"
 L["Drag to move."] = "Перетащите, чтобы переместить."
 L["Each window's size: \"Use UI scale\" follows the game's UI Scale slider, \"No scaling\" stays pixel-perfect, \"Custom\" uses its slider. The custom slider is greyed out and locked unless that window's mode is set to Custom."] = "Размер каждого окна: \"Масштаб интерфейса\" следует за игровым ползунком масштаба, \"Без масштабирования\" сохраняет попиксельную точность, \"Своё значение\" использует свой ползунок. Ползунок своего значения затенён и заблокирован, пока режим окна не переведён в «Своё значение»."
 L["Guild"] = "Гильдия"

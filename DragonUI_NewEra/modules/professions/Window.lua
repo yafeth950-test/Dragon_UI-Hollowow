@@ -732,6 +732,12 @@ end
 -- Event wiring. A plain EventFrame (not the window itself) owns the game events
 -- so the window frame doesn't carry event overhead when hidden.
 -- ============================================================================
+-- Guard flag: blocks auto-open of Professions triggered by the server sending
+-- TRADE_SKILL_SHOW / CRAFT_SHOW automatically on login/reload. Cleared after a
+-- short delay so that any player-initiated craft open (clicking profession icon)
+-- after that delay works normally.
+local _loginGuard = false
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("TRADE_SKILL_SHOW")
@@ -748,6 +754,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "PLAYER_LOGIN" then
     guard("loadOpts", loadOpts)
     guard("buildWindow", buildWindow)
+    -- Block auto-open events that the server may fire right after login/reload.
+    _loginGuard = true
+    if C_Timer and C_Timer.After then
+      C_Timer.After(5, function() _loginGuard = false end)
+    end
     -- Prewarm both the plain-bar fill texture and the art-based profession flipbook sheets on a
     -- SHOWN frame so their first visible use doesn't resolve as a dark placeholder.
     guard("prewarmBar", function()
@@ -782,6 +793,14 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
   elseif event == "TRADE_SKILL_SHOW" then
     if not isModuleEnabled() then return end
+    -- Suppress auto-open events fired by the server on login/reload.
+    if _loginGuard then
+      hideBlizzardTradeSkillFrames()
+      if C_Timer and C_Timer.After then
+        C_Timer.After(0, hideBlizzardTradeSkillFrames)
+      end
+      return
+    end
     C.mode = "tradeskill"
     do
       local n = GetTradeSkillLine and GetTradeSkillLine()
@@ -804,6 +823,14 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
   elseif event == "CRAFT_SHOW" then
     if not isModuleEnabled() then return end
+    -- Suppress auto-open events fired by the server on login/reload.
+    if _loginGuard then
+      hideBlizzardTradeSkillFrames()
+      if C_Timer and C_Timer.After then
+        C_Timer.After(0, hideBlizzardTradeSkillFrames)
+      end
+      return
+    end
     C.mode = "craft"
     do
       local n = (GetCraftDisplaySkillLine and GetCraftDisplaySkillLine())

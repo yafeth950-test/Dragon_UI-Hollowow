@@ -24,7 +24,10 @@ local SO = NE.social
 -- button row (34) => ~412 => 12 rows at 34px. Rows aren't clipped by the scroll frame, so don't
 -- overshoot.
 local NUM_ROWS   = 12
+local BASE_ROW_HEIGHT = 34
 local ROW_HEIGHT = 34
+local currentNumRows = NUM_ROWS
+local currentRowHeight = ROW_HEIGHT
 
 -- Ignore rows are single-line, so they fit a smaller extent.
 local IGNORE_ROWS   = 25
@@ -336,7 +339,7 @@ local function setupFriendsView(view)
   scroll:SetPoint("TOPLEFT", view, "TOPLEFT", 3, -5)
   scroll:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", -27, 5)
   scroll:SetScript("OnVerticalScroll", function(self, o)
-    FauxScrollFrame_OnVerticalScroll(self, o, ROW_HEIGHT, SO.RefreshFriends)
+    FauxScrollFrame_OnVerticalScroll(self, o, currentRowHeight, SO.RefreshFriends)
   end)
   view._scroll = scroll
   scroll.ScrollBar = _G["NE_SocialFriendsScrollScrollBar"]   -- 3.3.5a template has no parentKey
@@ -455,7 +458,7 @@ function SO.RefreshFriends()
   for i = 1, NUM_ROWS do
     local idx = offset + i
     local row = view._rows[i]
-    if idx <= total then
+    if i <= currentNumRows and idx <= total then
       local name, level, class, area, connected, status, note = GetFriendInfo(idx)
       row._index = idx
       row.icon:SetTexture(statusTexture(connected, status))
@@ -489,11 +492,30 @@ function SO.RefreshFriends()
       row:SetPoint("TOPLEFT", view._rows[i - 1], "BOTTOMLEFT", 0, 0)
     end
   end
-  FauxScrollFrame_Update(view._scroll, total, NUM_ROWS, ROW_HEIGHT)
+  FauxScrollFrame_Update(view._scroll, total, currentNumRows, currentRowHeight)
   -- Explicit, synchronous re-sync (owner report 2026-07-17, same fix as Guild Roster) — see
   -- NE.scrollbar.SyncCustom's comment in core/ScrollbarReskin.lua. total/NUM_ROWS passed through so
   -- it can defensively clamp the slider itself when the list fits (thumb-stuck-visible fix).
-  if NE.scrollbar and NE.scrollbar.SyncCustom then NE.scrollbar.SyncCustom(view._scroll, total, NUM_ROWS) end
+  if NE.scrollbar and NE.scrollbar.SyncCustom then NE.scrollbar.SyncCustom(view._scroll, total, currentNumRows) end
+end
+
+function SO.UpdateFriendsTextScale(scale)
+  local f = SO.frame
+  local panel = f and f.FriendsPanel
+  local view = panel and panel.FriendsView
+  if not (view and view._rows) then return end
+  local s = tonumber(scale) or 1.0
+  if s > 1.0 then
+    currentRowHeight = math.floor(BASE_ROW_HEIGHT * s)
+    currentNumRows = math.max(4, math.min(NUM_ROWS, math.floor(408 / currentRowHeight)))
+  else
+    currentRowHeight = BASE_ROW_HEIGHT
+    currentNumRows = NUM_ROWS
+  end
+  for _, row in ipairs(view._rows) do
+    row:SetHeight(currentRowHeight)
+  end
+  SO.RefreshFriends()
 end
 
 -- ---------------------------------------------------------------------------

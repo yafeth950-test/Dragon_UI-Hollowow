@@ -32,7 +32,10 @@ local ROW_HEIGHT  = 16
 -- the header's ~22px and a 4px bottom inset) only has ~406px to work with -- room for 25 rows max.
 -- Reduced to 24 for a small margin.
 local ROSTER_ROWS      = 24
+local BASE_ROSTER_ROW_HEIGHT = 14
 local ROSTER_ROW_HEIGHT = 14
+local currentRosterRows = ROSTER_ROWS
+local currentRosterRowHeight = ROSTER_ROW_HEIGHT
 local ROSTER_PROBE_MAX  = 300
 
 -- Forward-declared: read by the roster scroll's OnVerticalScroll (wired in SO.SetupChannels,
@@ -209,7 +212,7 @@ function SO.SetupChannels(f)
   rosterScroll:SetPoint("TOPLEFT", panel.RosterHeader, "BOTTOMLEFT", 0, -4)
   rosterScroll:SetPoint("BOTTOMRIGHT", right, "BOTTOMRIGHT", -24, 4)
   rosterScroll:SetScript("OnVerticalScroll", function(self, o)
-    FauxScrollFrame_OnVerticalScroll(self, o, ROSTER_ROW_HEIGHT, function() renderRosterRows(panel) end)
+    FauxScrollFrame_OnVerticalScroll(self, o, currentRosterRowHeight, function() renderRosterRows(panel) end)
   end)
   panel._rosterScroll = rosterScroll
   rosterScroll.ScrollBar = _G["NE_SocialChannelRosterScrollScrollBar"]   -- 3.3.5a template has no parentKey
@@ -305,7 +308,7 @@ renderRosterRows = function(panel)
   local total = #names
   local offset = panel._rosterScroll and FauxScrollFrame_GetOffset(panel._rosterScroll) or 0
   for i = 1, ROSTER_ROWS do
-    local n = names[offset + i]
+    local n = (i <= currentRosterRows) and names[offset + i] or nil
     panel._roster[i]:SetText(n or "")
     if panel._rosterRowFrames then
       local row = panel._rosterRowFrames[i]
@@ -316,12 +319,30 @@ renderRosterRows = function(panel)
     end
   end
   if panel._rosterScroll then
-    FauxScrollFrame_Update(panel._rosterScroll, total, ROSTER_ROWS, ROSTER_ROW_HEIGHT)
+    FauxScrollFrame_Update(panel._rosterScroll, total, currentRosterRows, currentRosterRowHeight)
     -- Explicit, synchronous re-sync (owner report 2026-07-17, same fix as Guild Roster/Friends) —
-    -- see NE.scrollbar.SyncCustom's comment in core/ScrollbarReskin.lua. total/ROSTER_ROWS passed
+    -- see NE.scrollbar.SyncCustom's comment in core/ScrollbarReskin.lua. total/currentRosterRows passed
     -- through so it can defensively clamp the slider itself when the list fits (thumb-stuck fix).
-    if NE.scrollbar and NE.scrollbar.SyncCustom then NE.scrollbar.SyncCustom(panel._rosterScroll, total, ROSTER_ROWS) end
+    if NE.scrollbar and NE.scrollbar.SyncCustom then NE.scrollbar.SyncCustom(panel._rosterScroll, total, currentRosterRows) end
   end
+end
+
+function SO.UpdateChannelsTextScale(scale)
+  local f = SO.frame
+  local panel = f and f.ChatPanel
+  if not (panel and panel._rosterRowFrames) then return end
+  local s = tonumber(scale) or 1.0
+  if s > 1.0 then
+    currentRosterRowHeight = math.floor(BASE_ROSTER_ROW_HEIGHT * s)
+    currentRosterRows = math.max(8, math.min(ROSTER_ROWS, math.floor(336 / currentRosterRowHeight)))
+  else
+    currentRosterRowHeight = BASE_ROSTER_ROW_HEIGHT
+    currentRosterRows = ROSTER_ROWS
+  end
+  for _, row in ipairs(panel._rosterRowFrames) do
+    row:SetHeight(currentRosterRowHeight)
+  end
+  if renderRosterRows then renderRosterRows(panel) end
 end
 
 -- Populate the right pane with the selected channel's roster, when the client exposes it.

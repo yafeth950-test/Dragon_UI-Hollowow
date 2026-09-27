@@ -12,7 +12,7 @@ local NE = DragonUI_NewEra
 NE.scale = NE.scale or {}
 local S = NE.scale
 
-S.MIN, S.MAX = 0.5, 1.5
+S.MIN, S.MAX = 0.5, 2.5
 
 -- Per-window defaults preserve each window's prior look: spellbook/talents were a fixed 0.8.
 -- BUG FIX (owner report 2026-07-17: "the default scaling is massive" after social/guild switched
@@ -121,6 +121,7 @@ function S.Apply(window)
     unpin(f)
     f:SetScale(1.0 * base)
   end
+  S.ApplyTextScale(window)
 end
 
 -- Persist a new mode + apply live.
@@ -139,4 +140,31 @@ function S.SetCustom(window, value)
   local st = store()
   if st then st[window] = st[window] or {}; st[window].custom = v end
   S.Apply(window)
+end
+
+-- Text scaling (internal font multiplier for supported windows)
+function S.GetTextScale(window)
+  local st = store()
+  local s = st and st[window]
+  if s and s.textScale then return s.textScale end
+  return 1.0
+end
+
+function S.SetTextScale(window, scale)
+  local v = tonumber(scale)
+  if not v then return end
+  v = math.max(0.5, math.min(2.5, v))
+  local st = store()
+  if st then
+    st[window] = st[window] or {}
+    st[window].textScale = v
+  end
+  S.ApplyTextScale(window)
+end
+
+function S.ApplyTextScale(window)
+  local scale = S.GetTextScale(window)
+  if window == "social" and NE.social and NE.social.ApplyTextScale then
+    NE.social.ApplyTextScale(scale)
+  end
 end

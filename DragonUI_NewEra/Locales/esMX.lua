@@ -387,6 +387,7 @@ L["Click for this frame's settings."] = "Haz clic para ver los ajustes de esta v
 L["Combined Bag"] = "Bolsa combinada"
 L["Custom"] = "Personalizado"
 L["Custom scale"] = "Escala personalizada"
+L["Text scale"] = "Escala del texto"
 L["Drag to move."] = "Arrastra para mover."
 L["Each window's size: \"Use UI scale\" follows the game's UI Scale slider, \"No scaling\" stays pixel-perfect, \"Custom\" uses its slider. The custom slider is greyed out and locked unless that window's mode is set to Custom."] = "El tamaño de cada ventana: \"Usar escala de interfaz\" sigue el deslizador de escala del juego, \"Sin escalado\" mantiene la precisión de píxel y \"Personalizado\" usa su deslizador. El deslizador personalizado está atenuado y bloqueado salvo que el modo de esa ventana sea 'Personalizado'."
 L["Guild"] = "Cofradía"

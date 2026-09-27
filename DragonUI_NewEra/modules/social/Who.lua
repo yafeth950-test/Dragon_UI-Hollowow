@@ -13,7 +13,10 @@ local SO = NE.social
 -- Fitted to the panel's scroll well (scroll insets -46/+34 of a 480-tall panel => ~400 => 25 rows
 -- at 16px); rows aren't clipped by the scroll frame, so don't overshoot.
 local NUM_ROWS   = 23
+local BASE_ROW_HEIGHT = 16
 local ROW_HEIGHT = 16
+local currentNumRows = NUM_ROWS
+local currentRowHeight = ROW_HEIGHT
 
 -- Columns, in the STOCK 3.3.5a order (owner supplied the stock frames as reference 2026-07-16):
 -- Name | Zone | Lvl | Class — NOT the Name/Level/Class/Zone of the first pass.
@@ -207,7 +210,7 @@ function SO.SetupWho(f)
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 3, -24)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -27, 37)
   scroll:SetScript("OnVerticalScroll", function(self, o)
-    FauxScrollFrame_OnVerticalScroll(self, o, ROW_HEIGHT, SO.RefreshWho)
+    FauxScrollFrame_OnVerticalScroll(self, o, currentRowHeight, SO.RefreshWho)
   end)
   panel._scroll = scroll
   scroll.ScrollBar = _G["NE_SocialWhoScrollScrollBar"]   -- 3.3.5a template doesn't set the parentKey
@@ -279,13 +282,15 @@ function SO.RefreshWho()
   local f = SO.frame
   local panel = f and f.WhoPanel
   if not (panel and panel._rows) then return end
-  local total = (GetNumWhoResults and GetNumWhoResults()) or 0
+  local numWhos, totalCount = GetNumWhoResults and GetNumWhoResults()
+  local listCount = tonumber(numWhos) or 0
+  local totalFound = tonumber(totalCount) or listCount
   local offset = FauxScrollFrame_GetOffset(panel._scroll)
 
   for i = 1, NUM_ROWS do
     local idx = offset + i
     local row = panel._rows[i]
-    if idx <= total then
+    if i <= currentNumRows and idx <= listCount then
       local name, guild, level, race, class, zone, classFile = GetWhoInfo(idx)
       row._index = idx
       row.cells[1]:SetText(name or "")
@@ -302,18 +307,32 @@ function SO.RefreshWho()
       row:Hide()
     end
   end
-  FauxScrollFrame_Update(panel._scroll, total, NUM_ROWS, ROW_HEIGHT)
+  FauxScrollFrame_Update(panel._scroll, listCount, currentNumRows, currentRowHeight)
 
-  -- Stock readout: "N People Found". The localized template's SHAPE isn't guaranteed on this
-  -- client (FRIENDS_LIST_TEMPLATE turned out not to match retail's specifiers — it silently
-  -- dropped an arg), and a template expecting more args than we pass would make string.format
-  -- ERROR. So try the localized one under pcall and fall back to a plain built string.
+  -- "N People Found" readout updated on every refresh (WHO_LIST_UPDATE, scroll, sort, etc.).
   if panel.Totals then
-    local shown, totalFound = GetNumWhoResults()
-    local n = tonumber(totalFound) or tonumber(shown) or total or 0
-    local ok, s = pcall(string.format, WHO_FRAME_TOTAL_TEMPLATE or "%d People Found", n)
-    panel.Totals:SetText((ok and s) or (tostring(n) .. " People Found"))
+    local fmt = _G.format or string.format
+    local ok, s = pcall(fmt, WHO_FRAME_TOTAL_TEMPLATE or "%d People Found", totalFound)
+    panel.Totals:SetText((ok and s) or (tostring(totalFound) .. " People Found"))
   end
+end
+
+function SO.UpdateWhoTextScale(scale)
+  local f = SO.frame
+  local panel = f and f.WhoPanel
+  if not (panel and panel._rows) then return end
+  local s = tonumber(scale) or 1.0
+  if s > 1.0 then
+    currentRowHeight = math.floor(BASE_ROW_HEIGHT * s)
+    currentNumRows = math.max(8, math.min(NUM_ROWS, math.floor(368 / currentRowHeight)))
+  else
+    currentRowHeight = BASE_ROW_HEIGHT
+    currentNumRows = NUM_ROWS
+  end
+  for _, row in ipairs(panel._rows) do
+    row:SetHeight(currentRowHeight)
+  end
+  SO.RefreshWho()
 end
 
 local ev = CreateFrame("Frame")
